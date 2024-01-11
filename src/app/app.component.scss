@@ -1,0 +1,10 @@
+.wrapper {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-content: normal;
+    div {
+        margin: 1rem;
+    }
+}
