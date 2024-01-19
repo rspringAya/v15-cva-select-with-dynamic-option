@@ -14,11 +14,12 @@ import {
     FormBuilder,
     FormControl,
     NG_VALIDATORS,
+    NG_VALUE_ACCESSOR,
     NgControl,
     ValidationErrors,
     Validator
 } from '@angular/forms';
-import { Observable, ReplaySubject, Subject, combineLatest, of } from 'rxjs';
+import { Observable, ReplaySubject, combineLatest, of } from 'rxjs';
 import { filter, map, take } from 'rxjs/operators';
 
 interface ListItem {
@@ -36,6 +37,11 @@ interface ListItem {
             provide: NG_VALIDATORS,
             useExisting: SelectCustomTriggerExample,
             multi: true
+        },
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: SelectCustomTriggerExample,
+            multi: true
         }
     ]
 })
@@ -43,7 +49,6 @@ export class SelectCustomTriggerExample
     implements
         OnInit,
         AfterViewInit,
-        AfterContentChecked,
         AfterViewChecked,
         OnChanges,
         Validator,
@@ -53,9 +58,9 @@ export class SelectCustomTriggerExample
 
     constructor(
         private readonly _fb: FormBuilder,
-        private readonly ngControl: NgControl
+        // private readonly ngControl: NgControl
     ) {
-        this.ngControl.valueAccessor = this;
+        // this.ngControl.valueAccessor = this;
         this.toppings = this._fb.nonNullable.control<ListItem[]>([]);
         this.toppingsOptions$.subscribe((e) => console.log('new options', e));
     }
@@ -115,8 +120,7 @@ export class SelectCustomTriggerExample
         console.log('validate');
         return this.toppings.errors;
     }
-    onChange = (val: number[]) => {
-    }
+    onChange = (val: number[]) => {};
     registerOnValidatorChange(fn: any): void {
         console.log('registerOnValidatorChange');
         this.OnValidatorChange = fn;
@@ -137,9 +141,9 @@ export class SelectCustomTriggerExample
     ngAfterViewChecked(): void {
         console.log('ngAfterViewChecked');
     }
-    ngAfterContentChecked(): void {
-        console.log('ngAfterContentChecked');
-    }
+    // ngAfterContentChecked(): void {
+    //     console.log('ngAfterContentChecked');
+    // }
     ngAfterViewInit(): void {
         console.log('ngAfterViewInit');
     }
