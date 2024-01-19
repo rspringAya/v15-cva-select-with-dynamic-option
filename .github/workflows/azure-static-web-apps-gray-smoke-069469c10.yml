@@ -20,16 +20,19 @@ jobs:
         with:
           submodules: true
           lfs: false
-
-      - name: Build and Deploy
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16.x # Use Node.js version 16
+      - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GRAY_SMOKE_069469C10 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          app_location: "/" # App source code path (root)
-          output_location: "dist/tutorial-app" # Built app content directory - optional
+          app_location: "/"
+          output_location: "dist/tutorial-app"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
