@@ -64,8 +64,10 @@
                             "vendorChunk": true,
                             "extractLicenses": false,
                             "sourceMap": true,
-                            "namedChunks": true
+                            "namedChunks": true,
+                            "outputPath": "dist/tutorial-app"
                         }
+                        
                     },
                     "defaultConfiguration": "production"
                 },
