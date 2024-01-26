@@ -1,5 +1,4 @@
 import {
-    AfterContentChecked,
     AfterViewChecked,
     AfterViewInit,
     Component,
@@ -15,17 +14,18 @@ import {
     FormControl,
     NG_VALIDATORS,
     NG_VALUE_ACCESSOR,
-    NgControl,
     ValidationErrors,
     Validator
 } from '@angular/forms';
 import { Observable, ReplaySubject, combineLatest, of } from 'rxjs';
-import { filter, map, take } from 'rxjs/operators';
+import { filter, map } from 'rxjs/operators';
 
 interface ListItem {
     id: number;
     name: string;
 }
+
+export type ItemOrId = number | ListItem;
 
 /** @title Select with custom trigger text */
 @Component({
@@ -56,16 +56,15 @@ export class SelectCustomTriggerExample
 {
     readonly toppings: FormControl<ListItem[]>;
 
-    constructor(
-        private readonly _fb: FormBuilder,
-        // private readonly ngControl: NgControl
-    ) {
-        // this.ngControl.valueAccessor = this;
+    constructor(private readonly _fb: FormBuilder) {
         this.toppings = this._fb.nonNullable.control<ListItem[]>([]);
         this.toppingsOptions$.subscribe((e) => console.log('new options', e));
     }
 
-    readonly toppingsOptions$ = new ReplaySubject<ListItem[]>();
+    /**
+     * This ReplaySubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
+     */
+    readonly toppingsOptions$ = new ReplaySubject<ListItem[]>(1);
 
     @Input()
     set toppingsOptions(value: ListItem[]) {
@@ -73,29 +72,31 @@ export class SelectCustomTriggerExample
     }
 
     // #region CVA
-    writeValue(val: any): void {
+    /**
+     * 
+     * @param val This is the value coming from the parent form, whether it be the initial value it was
+     * constructed with or a later value that has been set by some external source.
+     * This is also where the 
+     * 
+     * Note: This must accept null to support nullable controls. Undefined should technically not come
+     * through here if the control typing is being adhered to.
+     * 
+     */
+    writeValue(val: ItemOrId | ItemOrId[] | null): void {
         console.log('writeValue');
         this.waitForInputValue(val).subscribe((t) => this.toppings.setValue(t));
     }
 
-    private waitForInputValue(val: any): Observable<any> {
-        // Wait for the toppingsOptions$ to emit, then complete
-        return combineLatest([
-            of(val).pipe(map((v) => new Set(v))),
-            this.toppingsOptions$
-        ]).pipe(
-            map(([v, o]): ListItem[] => o.filter((i) => v.has(i.id))),
-            take(1)
-        );
-    }
-
-    private extractIds(items: (ListItem | number)[]): number[] {
-        return items.map((item) => (typeof item === 'number' ? item : item.id));
-    }
-
+    onChange = (val: number[]) => {};
     registerOnChange(fn: any) {
         console.log('registerOnChange');
         this.onChange = fn;
+
+        /**
+         * As a common practice, this is where the control value updates should be filtered/transformed
+         * before emitting updated values to the parent form. In this case, the id is being pulled from
+         * the ListItem
+         */
         this.toppings.valueChanges
             .pipe(
                 filter(Boolean),
@@ -107,12 +108,22 @@ export class SelectCustomTriggerExample
             });
     }
 
+    onTouched = () => {};
     registerOnTouched(fn: any): void {
         console.log('registerOnTouched');
+        this.onTouched = fn;
     }
+
     setDisabledState?(isDisabled: boolean): void {
         console.log('setDisabledState');
+        if (isDisabled){
+            this.toppings.disable();
+        } else {
+            this.toppings.enable();
+
+        }
     }
+
     // #endregion end CVA
 
     // #region Validator
@@ -120,34 +131,54 @@ export class SelectCustomTriggerExample
         console.log('validate');
         return this.toppings.errors;
     }
-    onChange = (val: number[]) => {};
+    
+    OnValidatorChange = () => {};
     registerOnValidatorChange(fn: any): void {
         console.log('registerOnValidatorChange');
         this.OnValidatorChange = fn;
     }
     // #endregion Validator
-    OnValidatorChange = () => {};
+    
+    // Only here to log when this happens
     ngOnChanges(changes: SimpleChanges): void {
         console.log('ngOnChanges');
-        if (changes.toppingsOptions) {
-            this.waitForInputValue(
-                this.extractIds(this.toppings.value)
-            ).subscribe((value) => {
-                // Use the value here to update your form or perform other actions
-                this.toppings.patchValue(value);
-            });
-        }
     }
+
+    // Only here to log when this happens
     ngAfterViewChecked(): void {
         console.log('ngAfterViewChecked');
     }
-    // ngAfterContentChecked(): void {
-    //     console.log('ngAfterContentChecked');
-    // }
+
+    // Only here to log when this happens
     ngAfterViewInit(): void {
         console.log('ngAfterViewInit');
     }
+
+    // Only here to log when this happens
     ngOnInit(): void {
         console.log('ngOnInit');
+    }
+
+    /**
+     *
+     * @param val This holds the incoming value until listItems ReplaySubject has a value.
+     * Note, the ReplaySubject will
+     * @returns Observable<any>
+     */
+    private waitForInputValue<T extends ItemOrId | ItemOrId[] | null>(
+        val: T
+    ): Observable<ListItem[]> {
+        // combineLatest ensures toppingsOptions$ has a value or waits to emit until it does
+        return combineLatest([
+            of(val).pipe(map((v) => new Set(Array.isArray(v) ? [...v] : [v]))),
+            this.toppingsOptions$
+        ]).pipe(
+            // Create a distinct list of toppingsOptions that match the id from the value(s).
+            map(([v, o]): ListItem[] => o.filter((i) => v.has(i.id)))
+        );
+    }
+
+    private extractIds(items: (ListItem | number)[]): number[] {
+        return items.map((item) => (typeof item === 'number' ? item : item.id));
     }
 }
