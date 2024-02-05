@@ -1,0 +1,26 @@
+<mat-form-field appearance="fill" class="mr-1">
+  <mat-label>Toppings</mat-label>
+  <input type="text"
+  [placeholder]="placeholder"
+  matInput
+  [formControl]="inputControl"
+  [matAutocomplete]="auto"
+  (blur)="onTouched()"
+  data-qa-id="selectedValue">
+
+  <mat-autocomplete autoActiveFirstOption
+  #auto="matAutocomplete"
+  [displayWith]="displayFn">
+<mat-option *ngFor="let option of (filteredOptions$ | async); trackBy: trackById"
+[value]="option">
+{{ option.name }}
+</mat-option>
+</mat-autocomplete>
+<mat-error *ngIf="inputControl.hasError('required')">
+This field is required
+</mat-error>
+</mat-form-field>
+  <pre>
+
+    CVA control value: {{ inputControl.value | json }}
+  </pre>
