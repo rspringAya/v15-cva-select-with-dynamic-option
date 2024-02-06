@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { of } from 'rxjs';
+import { delay, of } from 'rxjs';
 import { initialValueAndValidatorTestScenarios } from '../select-auto-complete/test-scenarios';
 
 @Component({
@@ -30,6 +30,19 @@ export class SelectAutoCompleteExamplesComponent {
             s.validatorName === 'AyaValidators.minAsRequired(1)'
                 ? of(this.listItemsWithoutZeroPayload)
                 : of(this.listItemsWithZeroPayload);
+
+        return {
+            c: new FormControl(s.initialValue, s.validator),
+            s,
+            listItems$
+        };
+    });
+
+    scenariosWithControlsAndDelayedListItems = this.scenarios.map((s) => {
+        const listItems$ =
+            s.validatorName === 'AyaValidators.minAsRequired(1)'
+                ? of(this.listItemsWithoutZeroPayload).pipe(delay(2000))
+                : of(this.listItemsWithZeroPayload).pipe(delay(2000));
 
         return {
             c: new FormControl(s.initialValue, s.validator),

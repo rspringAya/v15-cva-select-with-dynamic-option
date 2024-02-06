@@ -12,3 +12,15 @@ body {
   display: flex;
   flex-direction: row;
 }
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.fail {
+  color: red;
+}
+.pass {
+  color: green;
+}

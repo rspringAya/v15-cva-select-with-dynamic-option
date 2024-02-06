@@ -26,7 +26,7 @@ import {
     merge,
     of
 } from 'rxjs';
-import { debounceTime, map, takeUntil, tap } from 'rxjs/operators';
+import { debounceTime, filter, map, takeUntil, tap } from 'rxjs/operators';
 import {
     hasControlMinAsRequired,
     inheritMinIdentifiableAsRequired
@@ -98,6 +98,7 @@ export class SelectAutoComplete
      * This ReplaySubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
      */
     readonly listOptions$ = this._listOptions$.asObservable().pipe(
+        filter(Boolean),
         tap((l) => {
             this._setValueIfInListItemOrClear(l);
         })
@@ -130,7 +131,9 @@ export class SelectAutoComplete
     writeValue(v: ItemOrId | null): void {
         const val = getNumberOrId(v);
         this._waitForInputValue(val).subscribe((t) => {
-            this.inputControl.setValue(t);
+            // emitEvent here is false, because the parent form is the source of writeValue. Therefore 
+            // emitting changes to the parent is redundant and falsely sets dirty to true.
+            this.inputControl.setValue(t, { emitEvent: false });
         });
     }
 
@@ -152,7 +155,7 @@ export class SelectAutoComplete
                 // TODO: Do we really need to call this? Calling it makes valueChanges on the parent form emit twice.
                 // Supposedly this is to ensure the parent form re-runs validity checks, but that shouldn't be necessary
                 // if valueChanges is already emitted.
-                this.OnValidatorChange();
+                // this.OnValidatorChange();
             });
     }
 
@@ -237,7 +240,7 @@ export class SelectAutoComplete
         if (value) {
             // Only set it if it's a new value
             if (value !== foundValue) {
-                this.inputControl.setValue(value, {emitEvent: false});
+                this.inputControl.setValue(value, { emitEvent: false });
             }
         } else {
             this._clearValue();
@@ -253,7 +256,7 @@ export class SelectAutoComplete
      */
     private _clearValue() {
         console.log(this._derivedEmpty);
-        this.inputControl.setValue(this._derivedEmpty, {emitEvent: false});
+        this.inputControl.setValue(this._derivedEmpty, { emitEvent: false });
     }
 
     private _filterOptions(
