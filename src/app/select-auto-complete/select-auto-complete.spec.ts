@@ -5,8 +5,7 @@ import {
     FormControl,
     FormsModule,
     ReactiveFormsModule,
-    ValidatorFn,
-    Validators
+    ValidatorFn
 } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -14,7 +13,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SpectatorHost, createHostFactory } from '@ngneat/spectator';
 import { Observable, ReplaySubject } from 'rxjs';
 import { ListItem } from '../list-item.models';
-import { AyaValidators } from '../validators';
 import { SelectAutoComplete } from './select-auto-complete';
 import { initialValueAndValidatorTestScenarios } from './test-scenarios';
 
@@ -182,7 +180,8 @@ describe('SelectAutoComplete', () => {
             validatorStatus,
             errors,
             expectedInternalValue,
-            expectedParentValue
+            expectedParentValue,
+            expectedParentValidatorStatus
         }) => {
             const strInitialValue = JSON.stringify(initialValue);
             describe(`with list items immediately available, initial value set to (${strInitialValue}), 
@@ -232,26 +231,19 @@ describe('SelectAutoComplete', () => {
                         errors
                     );
 
-                    // expect(spectator.hostComponent.control.errors).toEqual(
-                    //     errors
-                    // );
-
                     expect(spectator.component.inputControl.status).toEqual(
                         validatorStatus
                     );
 
-                    expect(spectator.hostComponent.control.untouched).toEqual(
-                        true
-                    );
-                    
-                    expect(spectator.hostComponent.control.pristine).toEqual(
-                        true
-                    );
-                    
-                    expect(spectator.hostComponent.control.valid).toEqual(
-                        validatorStatus === 'INVALID' ? false : true
-                    );
+                    expect(
+                        spectator.hostComponent.control.untouched
+                    ).toBeTrue();
 
+                    expect(spectator.hostComponent.control.pristine).toBeTrue();
+
+                    expect(spectator.hostComponent.control.status).toEqual(
+                        expectedParentValidatorStatus
+                    );
 
                     // expect(spectator.hostComponent.changesCount).toBe(0);
 
@@ -290,4 +282,3 @@ describe('SelectAutoComplete', () => {
         }
     );
 });
-

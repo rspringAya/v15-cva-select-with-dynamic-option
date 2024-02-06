@@ -3,9 +3,6 @@ import {
     Component,
     Injector,
     Input,
-    OnChanges,
-    OnInit,
-    SimpleChanges,
     ViewChild
 } from '@angular/core';
 import {
@@ -19,9 +16,17 @@ import {
     ValidationErrors,
     Validator
 } from '@angular/forms';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatLegacyAutocomplete as MatAutocomplete } from '@angular/material/legacy-autocomplete';
-import { Observable, ReplaySubject, combineLatest, merge, of } from 'rxjs';
-import { debounceTime, map, startWith, takeUntil } from 'rxjs/operators';
+import {
+    Observable,
+    ReplaySubject,
+    Subject,
+    combineLatest,
+    merge,
+    of
+} from 'rxjs';
+import { debounceTime, map, takeUntil, tap } from 'rxjs/operators';
 import {
     hasControlMinAsRequired,
     inheritMinIdentifiableAsRequired
@@ -30,8 +35,7 @@ import {
     ItemOrId,
     ListItem,
     SelectedItem,
-    extractId,
-    getNumber,
+    getNumberOrId,
     isListItem
 } from '../list-item.models';
 import { beginsWith, isEmpty } from '../obj-utilities';
@@ -58,16 +62,12 @@ Investigate later.
             useExisting: SelectAutoComplete,
             multi: true
         }
-    ]
+    ],
+    host: { focus: 'focus()' }
 })
 export class SelectAutoComplete
     extends UnsubscribeOnDestroy
-    implements
-        OnInit,
-        AfterViewInit,
-        OnChanges,
-        Validator,
-        ControlValueAccessor
+    implements AfterViewInit, Validator, ControlValueAccessor
 {
     @Input() placeholder = '';
 
@@ -93,17 +93,28 @@ export class SelectAutoComplete
         );
     }
 
+    private readonly _listOptions$ = new ReplaySubject<ListItem[]>(1);
     /**
      * This ReplaySubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
      */
-    readonly listOptions$ = new ReplaySubject<ListItem[]>(1);
+    readonly listOptions$ = this._listOptions$.asObservable().pipe(
+        tap((l) => {
+            this._setValueIfInListItemOrClear(l);
+        })
+    );
 
     @Input()
     set listItems(value: ListItem[]) {
-        this.listOptions$.next(value);
+        this._listOptions$.next(value);
     }
 
     filteredOptions$: Observable<ListItem[]> | undefined;
+
+    panelManuallyOpened$ = new Subject<void>();
+    openPanel(a: MatAutocompleteTrigger) {
+        a.openPanel();
+        this.panelManuallyOpened$.next();
+    }
 
     // #region CVA
     /**
@@ -117,7 +128,7 @@ export class SelectAutoComplete
      *
      */
     writeValue(v: ItemOrId | null): void {
-        const val = getNumber(v);
+        const val = getNumberOrId(v);
         this._waitForInputValue(val).subscribe((t) => {
             this.inputControl.setValue(t);
         });
@@ -134,8 +145,9 @@ export class SelectAutoComplete
          * the ListItem
          */
         this.inputControl.valueChanges
-            .pipe(map((t) => extractId(t)))
+            .pipe(map((t) => getNumberOrId(t)))
             .subscribe((t) => {
+                console.log(t);
                 this.onChange(t);
                 // TODO: Do we really need to call this? Calling it makes valueChanges on the parent form emit twice.
                 // Supposedly this is to ensure the parent form re-runs validity checks, but that shouldn't be necessary
@@ -147,7 +159,11 @@ export class SelectAutoComplete
     onTouched = () => {};
     registerOnTouched(fn: any): void {
         console.log('registerOnTouched');
-        this.onTouched = fn;
+        if (this.inputControl) {
+            this.onTouched = () => {
+                fn.apply(this);
+            };
+        }
     }
 
     setDisabledState?(isDisabled: boolean): void {
@@ -174,20 +190,11 @@ export class SelectAutoComplete
     // #endregion Validator
 
     // #region LifeCycles
-    // Only here to log when this happens
-    ngOnChanges(changes: SimpleChanges): void {
-        console.log('ngOnChanges');
-    }
 
     // Only here to log when this happens
     ngAfterViewInit(): void {
         console.log('ngAfterViewInit');
         this._initializeFilteredList();
-    }
-
-    // Only here to log when this happens
-    ngOnInit(): void {
-        console.log('ngOnInit');
     }
     // #endregion LifeCycles
 
@@ -198,21 +205,10 @@ export class SelectAutoComplete
     trackById = (item: any) => item.id;
 
     /** Not executed until after the view is initialized.
-     * This ensures the listItems is populated before attempting to filter any options. */
+     * This ensures ViewChild(auto) is not undefined. */
     private _initializeFilteredList(): void {
         this.filteredOptions$ = combineLatest([
-            merge(
-                this.auto?.opened.pipe(
-                    map(() => {
-                        console.log('opened');
-                        return '';
-                    })
-                ),
-                this.inputControl.valueChanges.pipe(
-                    startWith(''),
-                    debounceTime(100)
-                )
-            ),
+            this._onTypingOrTrigger(),
             this.listOptions$
         ]).pipe(
             map(([val, listItems]) => this._filterOptions(val, listItems)),
@@ -221,12 +217,51 @@ export class SelectAutoComplete
         );
     }
 
+    private _onTypingOrTrigger() {
+        return merge(
+            this.panelManuallyOpened$.pipe(map(() => '')),
+            this.auto?.opened.pipe(map(() => '')),
+            this.inputControl.valueChanges.pipe(debounceTime(100))
+        );
+    }
+
+    /**
+     * If the value is not in list, clear the input value
+     */
+    private _setValueIfInListItemOrClear(list: ListItem[]) {
+        const { value } = this.inputControl;
+        const foundValue = list.find(
+            (e) => e.id === this._selectedItemToId(value)
+        );
+
+        if (value) {
+            // Only set it if it's a new value
+            if (value !== foundValue) {
+                this.inputControl.setValue(value, {emitEvent: false});
+            }
+        } else {
+            this._clearValue();
+        }
+    }
+
+    private _selectedItemToId(item: SelectedItem | number) {
+        return isListItem(item) ? item?.id : Number(item);
+    }
+
+    /**
+     * Set to null or -1 based on whether control is required/has min value.
+     */
+    private _clearValue() {
+        console.log(this._derivedEmpty);
+        this.inputControl.setValue(this._derivedEmpty, {emitEvent: false});
+    }
+
     private _filterOptions(
         val: SelectedItem,
         listItems: ListItem[]
     ): ListItem[] {
         // When val is empty, return all listItems. Otherwise filter by beginsWith.
-        return isEmpty(val, ['0'])
+        return isEmpty(val, ['-1', -1])
             ? listItems
             : listItems.filter((p) =>
                   beginsWith(p.name, isListItem(val) ? val.name : val)
@@ -256,7 +291,7 @@ export class SelectAutoComplete
     ): Observable<ListItem | null> {
         // combineLatest ensures listOptions$ has a value or waits to emit until it does
         return combineLatest([
-            of(val).pipe(map((v) => extractId(v))),
+            of(val).pipe(map((v) => getNumberOrId(v))),
             this.listOptions$
         ]).pipe(
             // Create a distinct list of listOptions that match the id from the value(s).

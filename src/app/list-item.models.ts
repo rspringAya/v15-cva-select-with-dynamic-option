@@ -1,4 +1,3 @@
-
 export interface Identifiable {
     [key: string]: any;
     id: string | number;
@@ -35,40 +34,38 @@ export const isListItem = (item?: SelectedItem | number): item is ListItem => {
         typeof item !== 'number' &&
         item?.id !== undefined
     );
-}
+};
 
-export const extractId = (item: ItemOrId | null): number | null => {
-    return typeof item === 'number' ? item : item?.id ?? null;
-}
-
-export const getNumber = (v: Identifiable | number | string | null): number | null => {
+export const getNumberOrId = (
+    v: Identifiable | number | string | null
+): number | null => {
     // Check for null input first
     if (v === null) {
-      return null;
+        return null;
     }
-  
+
     // Handle case where v is an object with an id property
     if (typeof v === 'object' && 'id' in v) {
-      v = v.id; // Extract the id to be processed below
+        v = v.id; // Extract the id to be processed below
     }
-  
+
     // If v is a string, try to parse it to a number
     if (typeof v === 'string') {
-      // Check if the string is empty or contains only whitespace
-      if (v.trim() === '') {
-        return -1;
-      }
-      
-      const parsed = Number(v);
-      // Check if the string is a valid number
-      return isNaN(parsed) ? -1 : parsed;
+        // Check if the string is empty or contains only whitespace
+        if (v.trim() === '') {
+            return -1;
+        }
+
+        const parsed = Number(v);
+        // Check if the string is a valid number
+        return isNaN(parsed) ? -1 : parsed;
     }
-  
+
     // If v is a number, return it directly
     if (typeof v === 'number') {
-      return v;
+        return v;
     }
-  
+
     // Fallback case, should not reach here based on current input types
     return -1;
-  }
+};

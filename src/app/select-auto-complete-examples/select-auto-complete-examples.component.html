@@ -19,13 +19,13 @@
     color="primary">Submit</button>
     
     <pre>
-        {{scenario.s | json}}
-        Parent control value: {{ scenario.c.value | json }}
-        Parent control status: {{ scenario.c.status | json }}
-        Parent control errors: {{ scenario.c.errors | json }}
-        Parent control pristine: {{ scenario.c.errors | json }}
-        Parent control untouched: {{ scenario.c.errors | json }}
-        listOptions: {{ (scenario.listItems$ | async) | json}}
+{{scenario.s | json}}
+Parent control value: {{ scenario.c.value | json }}
+Parent control pristine: {{ scenario.c.pristine | json }}
+Parent control untouched: {{ scenario.c.untouched | json }}
+Parent control status: {{ scenario.c.status | json }}
+Parent control errors: {{ scenario.c.errors | json }}
+listOptions: {{ (scenario.listItems$ | async) | json}}
     </pre>
 </div>
 </form>
