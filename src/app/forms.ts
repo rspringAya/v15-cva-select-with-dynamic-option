@@ -101,7 +101,6 @@ export const hasControlMinIdentifiableAsRequiredValidator = (
     }
 
     const errors = validator(new FormControl({ id: -Infinity }));
-    console.log(errors);
     return errors ? 'minId' in errors : false;
 };
 

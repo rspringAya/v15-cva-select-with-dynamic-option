@@ -158,7 +158,6 @@ export class SelectAutoComplete
         this.inputControl.valueChanges
             .pipe(map((t) => resolveToNumberOrId(t)))
             .subscribe((t) => {
-                console.log(t);
                 this.onChange(t);
                 // TODO: Do we really need to call this? Calling it makes valueChanges on the parent form emit twice.
                 // Supposedly this is to ensure the parent form re-runs validity checks, but that shouldn't be necessary
@@ -189,7 +188,8 @@ export class SelectAutoComplete
     // #region Validator
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
         inheritMinIdentifiableAsRequired(control, this.inputControl);
-        if (!hasControlNilValidator(control) && !isListItem(this.inputControl.value)){
+        const {value} = this.inputControl;
+        if (!hasControlNilValidator(control) && !isListItem(value) && !isEmpty(value, [-1])){
             this.inputControl.setErrors({invalidOption: 'invalid option'});
         }
         return this.inputControl.errors;
@@ -205,7 +205,6 @@ export class SelectAutoComplete
 
     // Only here to log when this happens
     ngAfterViewInit(): void {
-        console.log('ngAfterViewInit');
         this._initializeFilteredList();
     }
     // #endregion LifeCycles
@@ -235,18 +234,13 @@ export class SelectAutoComplete
         this._setPotentialExactMatch$
             .asObservable()
             .pipe(
-                withLatestFrom(this.filteredOptions$),
-                // filter(
-                //     ([_, options]) =>
-                //         options?.length === 1 &&
-                //         !isListItem(this.inputControl.value)
-                // )
+                withLatestFrom(this.filteredOptions$)
             )
             .subscribe(([_, options]) => {
                 if (options?.length === 1 && !isListItem(this.inputControl.value)) {
                     this.inputControl.setValue(options[0]);
                 } else {
-                    this.inputControl.updateValueAndValidity({emitEvent: false});
+                    this.inputControl.updateValueAndValidity();
                 }
             });
     }

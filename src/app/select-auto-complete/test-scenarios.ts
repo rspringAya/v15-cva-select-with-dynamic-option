@@ -1,7 +1,24 @@
-import { Validators } from '@angular/forms';
+import {
+    FormControlStatus,
+    ValidationErrors,
+    ValidatorFn,
+    Validators
+} from '@angular/forms';
+import { ListItem, SelectedItem } from '../list-item.models';
 import { AyaValidators } from '../validators';
 
-export const initialValueAndValidatorTestScenarios = [
+interface TestScenarios {
+    initialValue: SelectedItem | number;
+    validatorName: string;
+    validator: ValidatorFn;
+    validatorStatus: FormControlStatus;
+    errors: ValidationErrors | null;
+    expectedInternalValue: ListItem | null;
+    expectedParentValue: SelectedItem | number;
+    expectedParentValidatorStatus: FormControlStatus;
+}
+
+export const initialValueAndValidatorTestScenarios: TestScenarios[] = [
     {
         initialValue: null,
         validatorName: 'Validators.nullValidator',
@@ -42,7 +59,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: null,
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: 0,
@@ -52,7 +69,7 @@ export const initialValueAndValidatorTestScenarios = [
         validator: Validators.nullValidator,
         expectedInternalValue: { id: 0, name: 'test 0' },
         expectedParentValue: 0,
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: 0,
@@ -62,7 +79,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 0, name: 'test 0' },
         expectedParentValue: 0,
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: 0,
@@ -78,7 +95,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: 0,
-        expectedParentValidatorStatus: 'INVALID',
+        expectedParentValidatorStatus: 'INVALID'
     },
     {
         initialValue: -1,
@@ -94,7 +111,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: -1,
-        expectedParentValidatorStatus: 'INVALID',
+        expectedParentValidatorStatus: 'INVALID'
     },
     {
         initialValue: -1,
@@ -110,7 +127,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: -1,
-        expectedParentValidatorStatus: 'INVALID',
+        expectedParentValidatorStatus: 'INVALID'
     },
     {
         initialValue: { id: -1, name: '' },
@@ -126,7 +143,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: { id: -1, name: '' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: -1, name: '' },
@@ -142,7 +159,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: { id: -1, name: '' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 0, name: 'test 0' },
@@ -152,7 +169,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 0, name: 'test 0' },
         expectedParentValue: { id: 0, name: 'test 0' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 0, name: 'test 0' },
@@ -162,7 +179,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 0, name: 'test 0' },
         expectedParentValue: { id: 0, name: 'test 0' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 0, name: '' },
@@ -178,7 +195,7 @@ export const initialValueAndValidatorTestScenarios = [
         },
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: { id: 0, name: '' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 1, name: 'test 1' },
@@ -188,7 +205,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: { id: 1, name: 'test 1' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 1, name: 'test 1' },
@@ -198,7 +215,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: { id: 1, name: 'test 1' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: 1, name: 'test 1' },
@@ -208,7 +225,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: { id: 1, name: 'test 1' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: -1,
@@ -218,7 +235,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: -1,
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: { id: -1, name: '' },
@@ -228,7 +245,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: -1, name: '' },
         expectedParentValue: { id: -1, name: '' },
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: '1',
@@ -238,7 +255,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: '1',
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: '1',
@@ -248,7 +265,7 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: '1',
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     },
     {
         initialValue: '1',
@@ -258,6 +275,6 @@ export const initialValueAndValidatorTestScenarios = [
         errors: null,
         expectedInternalValue: { id: 1, name: 'test 1' },
         expectedParentValue: '1',
-        expectedParentValidatorStatus: 'VALID',
+        expectedParentValidatorStatus: 'VALID'
     }
 ];

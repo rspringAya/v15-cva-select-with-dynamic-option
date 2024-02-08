@@ -97,7 +97,6 @@ describe('SelectAutoComplete', () => {
                 parentFormValidators
             );
             this.control.valueChanges.subscribe((v) => {
-                console.log(v);
                 this.changesCount++;
             });
         }
@@ -245,14 +244,14 @@ describe('SelectAutoComplete', () => {
                         expectedParentValidatorStatus
                     );
 
-                    // expect(spectator.hostComponent.changesCount).toBe(0);
+                    expect(spectator.hostComponent.changesCount).toBe(0);
 
-                    // spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
+                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
 
-                    // tick(100);
-                    // spectator.detectChanges();
+                    tick(100);
+                    spectator.detectChanges();
 
-                    // expect(spectator.hostComponent.changesCount).toBe(1);
+                    expect(spectator.hostComponent.changesCount).toBe(1);
                 }));
 
                 it('to be invalid', fakeAsync(() => {
@@ -363,12 +362,12 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
-                    // spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
+                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
 
-                    // tick(100);
-                    // spectator.detectChanges();
+                    tick(100);
+                    spectator.detectChanges();
 
-                    // expect(spectator.hostComponent.changesCount).toBe(1);
+                    expect(spectator.hostComponent.changesCount).toBe(1);
                 }));
 
                 it(`to be ${validatorStatus}`, fakeAsync(() => {
