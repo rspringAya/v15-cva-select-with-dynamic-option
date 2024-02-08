@@ -110,6 +110,10 @@ export const hasControlMinValidator = (control: AbstractControl): boolean => {
     return errors ? 'min' in errors : false;
 };
 
+export const hasControlNilValidator = (control: AbstractControl): boolean => {
+    return control.validator === null || control.hasValidator(Validators.nullValidator);
+};
+
 export const getMinParamValue = (
     control: AbstractControl
 ): number | undefined => {

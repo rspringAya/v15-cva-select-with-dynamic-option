@@ -36,7 +36,7 @@ export const isListItem = (item?: SelectedItem | number): item is ListItem => {
     );
 };
 
-export const getNumberOrId = (
+export const resolveToNumberOrId = (
     v: Identifiable | number | string | null
 ): number | null => {
     // Check for null input first

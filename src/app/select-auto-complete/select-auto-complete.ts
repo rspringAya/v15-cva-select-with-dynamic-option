@@ -26,16 +26,24 @@ import {
     merge,
     of
 } from 'rxjs';
-import { debounceTime, filter, map, takeUntil, tap } from 'rxjs/operators';
+import {
+    debounceTime,
+    filter,
+    map,
+    takeUntil,
+    tap,
+    withLatestFrom
+} from 'rxjs/operators';
 import {
     hasControlMinAsRequired,
+    hasControlNilValidator,
     inheritMinIdentifiableAsRequired
 } from '../forms';
 import {
     ItemOrId,
     ListItem,
     SelectedItem,
-    getNumberOrId,
+    resolveToNumberOrId,
     isListItem
 } from '../list-item.models';
 import { beginsWith, isEmpty } from '../obj-utilities';
@@ -93,6 +101,7 @@ export class SelectAutoComplete
         );
     }
 
+    private readonly _setPotentialExactMatch$ = new Subject<void>();
     private readonly _listOptions$ = new ReplaySubject<ListItem[]>(1);
     /**
      * This ReplaySubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
@@ -129,9 +138,9 @@ export class SelectAutoComplete
      *
      */
     writeValue(v: ItemOrId | null): void {
-        const val = getNumberOrId(v);
+        const val = resolveToNumberOrId(v);
         this._waitForInputValue(val).subscribe((t) => {
-            // emitEvent here is false, because the parent form is the source of writeValue. Therefore 
+            // emitEvent here is false, because the parent form is the source of writeValue. Therefore
             // emitting changes to the parent is redundant and falsely sets dirty to true.
             this.inputControl.setValue(t, { emitEvent: false });
         });
@@ -139,7 +148,6 @@ export class SelectAutoComplete
 
     onChange = (val: number | null) => {};
     registerOnChange(fn: any) {
-        console.log('registerOnChange');
         this.onChange = fn;
 
         /**
@@ -148,7 +156,7 @@ export class SelectAutoComplete
          * the ListItem
          */
         this.inputControl.valueChanges
-            .pipe(map((t) => getNumberOrId(t)))
+            .pipe(map((t) => resolveToNumberOrId(t)))
             .subscribe((t) => {
                 console.log(t);
                 this.onChange(t);
@@ -161,7 +169,6 @@ export class SelectAutoComplete
 
     onTouched = () => {};
     registerOnTouched(fn: any): void {
-        console.log('registerOnTouched');
         if (this.inputControl) {
             this.onTouched = () => {
                 fn.apply(this);
@@ -170,7 +177,6 @@ export class SelectAutoComplete
     }
 
     setDisabledState?(isDisabled: boolean): void {
-        console.log('setDisabledState');
         if (isDisabled) {
             this.inputControl.disable();
         } else {
@@ -183,6 +189,9 @@ export class SelectAutoComplete
     // #region Validator
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
         inheritMinIdentifiableAsRequired(control, this.inputControl);
+        if (!hasControlNilValidator(control) && !isListItem(this.inputControl.value)){
+            this.inputControl.setErrors({invalidOption: 'invalid option'});
+        }
         return this.inputControl.errors;
     }
 
@@ -201,6 +210,10 @@ export class SelectAutoComplete
     }
     // #endregion LifeCycles
 
+    onBlur() {
+        this.onTouched();
+        this._setPotentialExactMatch$.next();
+    }
     displayFn = (item?: ItemOrId | null): string =>
         // This is to prevent the number (id) value from being displayed until a listItem is selected.
         (isListItem(item) ? item.name : '') ?? '';
@@ -218,6 +231,24 @@ export class SelectAutoComplete
             takeUntil(this.d$)
             //untilDestroyed(this)
         );
+
+        this._setPotentialExactMatch$
+            .asObservable()
+            .pipe(
+                withLatestFrom(this.filteredOptions$),
+                // filter(
+                //     ([_, options]) =>
+                //         options?.length === 1 &&
+                //         !isListItem(this.inputControl.value)
+                // )
+            )
+            .subscribe(([_, options]) => {
+                if (options?.length === 1 && !isListItem(this.inputControl.value)) {
+                    this.inputControl.setValue(options[0]);
+                } else {
+                    this.inputControl.updateValueAndValidity({emitEvent: false});
+                }
+            });
     }
 
     private _onTypingOrTrigger() {
@@ -255,7 +286,6 @@ export class SelectAutoComplete
      * Set to null or -1 based on whether control is required/has min value.
      */
     private _clearValue() {
-        console.log(this._derivedEmpty);
         this.inputControl.setValue(this._derivedEmpty, { emitEvent: false });
     }
 
@@ -294,7 +324,7 @@ export class SelectAutoComplete
     ): Observable<ListItem | null> {
         // combineLatest ensures listOptions$ has a value or waits to emit until it does
         return combineLatest([
-            of(val).pipe(map((v) => getNumberOrId(v))),
+            of(val).pipe(map((v) => resolveToNumberOrId(v))),
             this.listOptions$
         ]).pipe(
             // Create a distinct list of listOptions that match the id from the value(s).

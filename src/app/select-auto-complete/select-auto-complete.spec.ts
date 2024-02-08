@@ -294,9 +294,10 @@ describe('SelectAutoComplete', () => {
             expectedParentValidatorStatus
         }) => {
             const strInitialValue = JSON.stringify(initialValue);
-            describe(`with list items asynchronously delayed, initial value set to (${strInitialValue}), 
+            describe(`with list items asynchronously delayed by 100ms, initial value set to (${strInitialValue}), 
                         and validator '${validatorName}'`, () => {
                 const strInternalValue = JSON.stringify(expectedInternalValue);
+                let listItems: ListItem[];
                 const strExpectedParentValue =
                     JSON.stringify(expectedParentValue);
                 beforeEach(() => {
@@ -311,6 +312,10 @@ describe('SelectAutoComplete', () => {
                                                 label="Test Autocomplete"
                                             >
                                             </aya-select-auto-complete>`);
+                    listItems =
+                        validatorName === 'AyaValidators.minAsRequired(1)'
+                            ? listItemsWithoutZeroPayloadForHostStore
+                            : listItemsWithZeroPayloadForHostStore;
                 });
 
                 it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
@@ -319,18 +324,14 @@ describe('SelectAutoComplete', () => {
                     tick(100);
                     spectator.detectChanges();
 
-
-                    
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        validatorName === 'AyaValidators.minAsRequired(1)'
-                            ? listItemsWithoutZeroPayloadForHostStore
-                            : listItemsWithZeroPayloadForHostStore
-                    );
-
                     //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
                     tick(1);
                     spectator.detectChanges();
 
+                    // Tick past valueChanges debounceTime(100)
                     tick(100);
                     spectator.detectChanges();
 
@@ -371,12 +372,20 @@ describe('SelectAutoComplete', () => {
                 }));
 
                 it(`to be ${validatorStatus}`, fakeAsync(() => {
-                    tick(1);
-                    spectator.detectChanges();
-
+                    // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
 
+                    //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // Tick past valueChanges debounceTime(100)
+                    tick(100);
+                    spectator.detectChanges();
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
                     );

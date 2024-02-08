@@ -6,7 +6,7 @@
   matInput
   [formControl]="inputControl"
   [matAutocomplete]="auto"
-  (blur)="onTouched()" 
+  (blur)="onBlur()" 
   #trigger="matAutocompleteTrigger"
   (focus)="openPanel(trigger)"
   >
@@ -25,8 +25,12 @@
   <mat-error *ngIf="inputControl.hasError('required')">
   This field is required
   </mat-error>
+  <mat-error *ngIf="inputControl.hasError('invalidOption')">
+    Please select a valid option
+  </mat-error>
 </mat-form-field>
   <pre>
 
+    CVA control errors: {{ inputControl.errors | json }}
     CVA control value: {{ inputControl.value | json }}
   </pre>
