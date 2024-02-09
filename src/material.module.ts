@@ -99,4 +99,4 @@ import { MatTreeModule } from '@angular/material/tree';
         DialogModule
     ]
 })
-export class MaterialExampleModule {}
+export class MaterialModule {}

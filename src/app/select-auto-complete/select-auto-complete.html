@@ -1,36 +1,40 @@
-<mat-form-field matAutocompleteOrigin appearance="fill" class="mr-1"
->
-  <mat-label>Toppings</mat-label>
-  <input type="text"
-  [placeholder]="placeholder"
-  matInput
-  [formControl]="inputControl"
-  [matAutocomplete]="auto"
-  (blur)="onBlur()" 
-  #trigger="matAutocompleteTrigger"
-  (focus)="openPanel(trigger)"
-  >
-  <mat-icon
-  matSuffix
-  class="material-icons-outlined">navigate_next</mat-icon>
-  <mat-autocomplete autoActiveFirstOption hideSingleSelectionIndicator
-
-  #auto="matAutocomplete"
-    [displayWith]="displayFn">
-  <mat-option *ngFor="let option of (filteredOptions$ | async); trackBy: trackById"
-  [value]="option">
-  {{ option.name }}
-  </mat-option>
-  </mat-autocomplete>
-  <mat-error *ngIf="inputControl.hasError('required')">
-  This field is required
-  </mat-error>
-  <mat-error *ngIf="inputControl.hasError('invalidOption')">
-    Please select a valid option
-  </mat-error>
+<mat-form-field matAutocompleteOrigin appearance="fill" class="mr-1">
+    <mat-label>Toppings</mat-label>
+    <input
+        type="text"
+        [placeholder]="placeholder"
+        matInput
+        [formControl]="inputControl"
+        [matAutocomplete]="auto"
+        (blur)="onBlur()"
+        #trigger="matAutocompleteTrigger"
+        (focus)="openPanel(trigger)"
+    />
+    <mat-icon matSuffix class="material-icons-outlined">navigate_next</mat-icon>
+    <mat-autocomplete
+        autoActiveFirstOption
+        hideSingleSelectionIndicator
+        #auto="matAutocomplete"
+        [displayWith]="displayFn"
+        (opened)="panelOpened(auto)"
+    >
+        <mat-option
+            *ngFor="let option of filteredOptions$ | async; trackBy: trackById"
+            [value]="option"
+        >
+            {{ option.name }}
+        </mat-option>
+    </mat-autocomplete>
+    <mat-error *ngIf="inputControl.hasError('required')">
+        This field is required
+    </mat-error>
+    <mat-error *ngIf="inputControl.hasError('invalidOption')">
+        Please select a valid option
+    </mat-error>
 </mat-form-field>
-  <pre>
+<pre>
 
     CVA control errors: {{ inputControl.errors | json }}
     CVA control value: {{ inputControl.value | json }}
-  </pre>
+  </pre
+>

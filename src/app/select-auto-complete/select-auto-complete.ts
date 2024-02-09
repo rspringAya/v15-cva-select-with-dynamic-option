@@ -1,26 +1,22 @@
-import {
-    AfterViewInit,
-    Component,
-    Injector,
-    Input,
-    ViewChild
-} from '@angular/core';
+import { Component, Input } from '@angular/core';
 import {
     AbstractControl,
-    ControlContainer,
     ControlValueAccessor,
     FormBuilder,
     FormControl,
     NG_VALIDATORS,
     NG_VALUE_ACCESSOR,
     ValidationErrors,
-    Validator
+    Validator,
+    Validators
 } from '@angular/forms';
-import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatLegacyAutocomplete as MatAutocomplete } from '@angular/material/legacy-autocomplete';
 import {
+    MatAutocomplete,
+    MatAutocompleteTrigger
+} from '@angular/material/autocomplete';
+import {
+    BehaviorSubject,
     Observable,
-    ReplaySubject,
     Subject,
     combineLatest,
     merge,
@@ -30,21 +26,20 @@ import {
     debounceTime,
     filter,
     map,
+    scan,
+    switchMap,
     takeUntil,
     tap,
     withLatestFrom
 } from 'rxjs/operators';
-import {
-    hasControlMinAsRequired,
-    hasControlNilValidator,
-    inheritMinIdentifiableAsRequired
-} from '../forms';
+import { hasControlNilValidator, inheritRequired } from '../forms';
 import {
     ItemOrId,
     ListItem,
     SelectedItem,
+    isListItem,
     resolveToNumberOrId,
-    isListItem
+    resolveToNumberOrString
 } from '../list-item.models';
 import { beginsWith, isEmpty } from '../obj-utilities';
 import { UnsubscribeOnDestroy } from '../unsubscribe-ondestroy';
@@ -75,39 +70,42 @@ Investigate later.
 })
 export class SelectAutoComplete
     extends UnsubscribeOnDestroy
-    implements AfterViewInit, Validator, ControlValueAccessor
+    implements Validator, ControlValueAccessor
 {
     @Input() placeholder = '';
 
-    @ViewChild('auto')
-    auto!: MatAutocomplete;
+    readonly inputControl: FormControl<string | null>;
 
-    readonly inputControl: FormControl<ListItem | null>;
-
-    private readonly _parentForm: AbstractControl | null;
-
-    constructor(
-        private readonly _fb: FormBuilder,
-        private readonly inj: Injector
-    ) {
+    private readonly panelOpened$ = new Subject<string>();
+    constructor(private readonly _fb: FormBuilder) {
         super();
-        this._parentForm = this.inj.get(ControlContainer).control;
-        if (this._parentForm) {
-            this._derivedEmpty = this._deriveEmpty(this._parentForm);
-        }
 
-        this.inputControl = this._fb.control<ListItem | null>(
-            this._derivedEmpty
-        );
+        this.inputControl = this._fb.control<string | null>('');
+        this._initializeFilteredList();
     }
 
     private readonly _setPotentialExactMatch$ = new Subject<void>();
-    private readonly _listOptions$ = new ReplaySubject<ListItem[]>(1);
+    private readonly __listOptions$ = new BehaviorSubject<ListItem[]>([]);
+    private readonly _listOptions$ = this.__listOptions$.pipe(scan(
+        (acc: { skip: boolean; value: ListItem[] }, curr: ListItem[]) => {
+            if (curr?.length > 0 || acc.value?.length !== 0 || !acc.skip) {
+                // If current array is non-empty, or after the first non-empty array has been received,
+                // we stop skipping emissions.
+                return { skip: false, value: curr };
+            }
+            // Initially skip, but don't change the value yet.
+            return acc;
+        },
+        { skip: true, value: [] }
+    ),
+    // Only emit when skip is false
+    filter((acc) => !acc.skip), 
+    map((acc) => acc.value));
+
     /**
-     * This ReplaySubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
+     * This BehaviorSubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
      */
-    readonly listOptions$ = this._listOptions$.asObservable().pipe(
-        filter(Boolean),
+    readonly listOptions$ = this._listOptions$.pipe(
         tap((l) => {
             this._setValueIfInListItemOrClear(l);
         })
@@ -115,15 +113,18 @@ export class SelectAutoComplete
 
     @Input()
     set listItems(value: ListItem[]) {
-        this._listOptions$.next(value);
+        this.__listOptions$.next(value);
     }
 
     filteredOptions$: Observable<ListItem[]> | undefined;
 
-    panelManuallyOpened$ = new Subject<void>();
+    panelOpened(auto: MatAutocomplete) {
+        this.panelOpened$.next('');
+    }
+
     openPanel(a: MatAutocompleteTrigger) {
         a.openPanel();
-        this.panelManuallyOpened$.next();
+        this.panelOpened$.next('');
     }
 
     // #region CVA
@@ -138,10 +139,11 @@ export class SelectAutoComplete
      *
      */
     writeValue(v: ItemOrId | null): void {
-        const val = resolveToNumberOrId(v);
+        const val = resolveToNumberOrString(v);
         this._waitForInputValue(val).subscribe((t) => {
             // emitEvent here is false, because the parent form is the source of writeValue. Therefore
             // emitting changes to the parent is redundant and falsely sets dirty to true.
+            console.log(t);
             this.inputControl.setValue(t, { emitEvent: false });
         });
     }
@@ -156,7 +158,14 @@ export class SelectAutoComplete
          * the ListItem
          */
         this.inputControl.valueChanges
-            .pipe(map((t) => resolveToNumberOrId(t)))
+            .pipe(
+                switchMap((t) => this.findItemInList(t)),
+                map((id) =>
+                    this.inputControl.hasValidator(Validators.required)
+                        ? -1
+                        : null
+                )
+            )
             .subscribe((t) => {
                 this.onChange(t);
                 // TODO: Do we really need to call this? Calling it makes valueChanges on the parent form emit twice.
@@ -187,10 +196,12 @@ export class SelectAutoComplete
 
     // #region Validator
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
-        inheritMinIdentifiableAsRequired(control, this.inputControl);
-        const {value} = this.inputControl;
-        if (!hasControlNilValidator(control) && !isListItem(value) && !isEmpty(value, [-1])){
-            this.inputControl.setErrors({invalidOption: 'invalid option'});
+        inheritRequired(control, this.inputControl);
+        // inheritMinIdentifiableAsRequired(control, this.inputControl);
+        const { value } = this.inputControl;
+        if (!isEmpty(value, [-1]) && !this.__listOptions$.value.find(i => i.name === this.inputControl.value) ) {
+            console.log(value);
+            this.inputControl.setErrors({ invalidOption: 'invalid option' });
         }
         return this.inputControl.errors;
     }
@@ -200,14 +211,6 @@ export class SelectAutoComplete
         this.OnValidatorChange = fn;
     }
     // #endregion Validator
-
-    // #region LifeCycles
-
-    // Only here to log when this happens
-    ngAfterViewInit(): void {
-        this._initializeFilteredList();
-    }
-    // #endregion LifeCycles
 
     onBlur() {
         this.onTouched();
@@ -233,12 +236,13 @@ export class SelectAutoComplete
 
         this._setPotentialExactMatch$
             .asObservable()
-            .pipe(
-                withLatestFrom(this.filteredOptions$)
-            )
+            .pipe(withLatestFrom(this.filteredOptions$))
             .subscribe(([_, options]) => {
-                if (options?.length === 1 && !isListItem(this.inputControl.value)) {
-                    this.inputControl.setValue(options[0]);
+                if (
+                    options?.length === 1 &&
+                    !isListItem(this.inputControl.value)
+                ) {
+                    this.inputControl.setValue(options[0].name ?? null);
                 } else {
                     this.inputControl.updateValueAndValidity();
                 }
@@ -247,8 +251,7 @@ export class SelectAutoComplete
 
     private _onTypingOrTrigger() {
         return merge(
-            this.panelManuallyOpened$.pipe(map(() => '')),
-            this.auto?.opened.pipe(map(() => '')),
+            this.panelOpened$.pipe(map(() => '')),
             this.inputControl.valueChanges.pipe(debounceTime(100))
         );
     }
@@ -264,7 +267,7 @@ export class SelectAutoComplete
 
         if (value) {
             // Only set it if it's a new value
-            if (value !== foundValue) {
+            if (value !== foundValue?.name) {
                 this.inputControl.setValue(value, { emitEvent: false });
             }
         } else {
@@ -280,7 +283,13 @@ export class SelectAutoComplete
      * Set to null or -1 based on whether control is required/has min value.
      */
     private _clearValue() {
-        this.inputControl.setValue(this._derivedEmpty, { emitEvent: false });
+        this.inputControl.setValue('', { emitEvent: false });
+    }
+
+    private findItemInList(val: string | null) {
+        return this._listOptions$.pipe(
+            map((l) => l.find((i) => i.name === val)?.id ?? null)
+        );
     }
 
     private _filterOptions(
@@ -295,27 +304,15 @@ export class SelectAutoComplete
               );
     }
 
-    private _derivedEmpty: ListItem | null = {
-        id: -1,
-        name: ''
-    };
-
-    private _deriveEmpty(control: AbstractControl): ListItem | null {
-        if (control.value === null && !hasControlMinAsRequired(control)) {
-            return null;
-        }
-        return { id: -1, name: '' };
-    }
-
     /**
      *
      * @param val This holds the incoming value until listItems ReplaySubject has a value.
      * Note, the ReplaySubject will
      * @returns Observable<any>
      */
-    private _waitForInputValue<T extends ItemOrId | null>(
+    private _waitForInputValue<T extends ItemOrId | string | null>(
         val: T
-    ): Observable<ListItem | null> {
+    ): Observable<string | null> {
         // combineLatest ensures listOptions$ has a value or waits to emit until it does
         return combineLatest([
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
@@ -323,8 +320,7 @@ export class SelectAutoComplete
         ]).pipe(
             // Create a distinct list of listOptions that match the id from the value(s).
             map(
-                ([v, o]): ListItem | null =>
-                    o.find((i) => i.id === v) ?? this._derivedEmpty
+                ([v, o]): string | null => o.find((i) => i.id === v)?.name ?? ''
             )
         );
     }

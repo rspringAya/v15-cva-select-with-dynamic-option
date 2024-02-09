@@ -69,3 +69,38 @@ export const resolveToNumberOrId = (
     // Fallback case, should not reach here based on current input types
     return -1;
 };
+
+
+export const resolveToNumberOrString = (
+  v: Identifiable | number | string | null
+): string | number | null => {
+  // Check for null input first
+  if (v === null) {
+      return null;
+  }
+
+  // Handle case where v is an object with an id property
+  if (typeof v === 'object' && 'id' in v) {
+      v = v.id; // Extract the id to be processed below
+  }
+
+  // If v is a string, try to parse it to a number
+  if (typeof v === 'string') {
+      // Check if the string is empty or contains only whitespace
+      if (v.trim() === '') {
+          return '';
+      }
+
+      const parsed = Number(v);
+      // Check if the string is a valid number
+      return isNaN(parsed) ? v : parsed;
+  }
+
+  // If v is a number, return it directly
+  if (typeof v === 'number') {
+      return v;
+  }
+
+  // Fallback case, should not reach here based on current input types
+  return -1;
+};

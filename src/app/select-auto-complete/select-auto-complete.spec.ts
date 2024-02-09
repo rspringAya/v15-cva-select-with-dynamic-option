@@ -5,7 +5,8 @@ import {
     FormControl,
     FormsModule,
     ReactiveFormsModule,
-    ValidatorFn
+    ValidatorFn,
+    Validators
 } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -240,13 +241,19 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.control.pristine).toBeTrue();
 
+                    spectator.component.listOptions$?.subscribe(i => {
+                        console.log(i);
+                        console.log(spectator.component.inputControl.value)
+                        console.log(spectator.hostComponent.control.errors)
+                        console.log(spectator.hostComponent.control.value)
+                    })
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
                     );
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
-                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
+                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2].name);
 
                     tick(100);
                     spectator.detectChanges();
@@ -362,7 +369,7 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
-                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2]);
+                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2].name);
 
                     tick(100);
                     spectator.detectChanges();
