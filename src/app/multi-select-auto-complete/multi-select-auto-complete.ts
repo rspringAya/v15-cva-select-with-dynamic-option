@@ -29,23 +29,23 @@ export type ItemOrId = number | ListItem;
 
 /** @title Select with custom trigger text */
 @Component({
-    selector: 'select-custom-multiselect',
-    templateUrl: 'select-custom-multiselect.html',
-    styleUrls: ['select-custom-multiselect.css'],
+    selector: 'multi-select-auto-complete',
+    templateUrl: 'multi-select-auto-complete.html',
+    styleUrls: ['multi-select-auto-complete.css'],
     providers: [
         {
             provide: NG_VALIDATORS,
-            useExisting: SelectCustomTriggerExample,
+            useExisting: MultiSelectAutoComplete,
             multi: true
         },
         {
             provide: NG_VALUE_ACCESSOR,
-            useExisting: SelectCustomTriggerExample,
+            useExisting: MultiSelectAutoComplete,
             multi: true
         }
     ]
 })
-export class SelectCustomTriggerExample
+export class MultiSelectAutoComplete
     implements
         OnInit,
         AfterViewInit,
@@ -54,10 +54,10 @@ export class SelectCustomTriggerExample
         Validator,
         ControlValueAccessor
 {
-    readonly toppings: FormControl<ListItem[]>;
+    readonly inputControl: FormControl<ListItem[]>;
 
     constructor(private readonly _fb: FormBuilder) {
-        this.toppings = this._fb.nonNullable.control<ListItem[]>([]);
+        this.inputControl = this._fb.nonNullable.control<ListItem[]>([]);
         this.toppingsOptions$.subscribe((e) => console.log('new options', e));
     }
 
@@ -84,7 +84,7 @@ export class SelectCustomTriggerExample
      */
     writeValue(val: ItemOrId | ItemOrId[] | null): void {
         console.log('writeValue');
-        this.waitForInputValue(val).subscribe((t) => this.toppings.setValue(t));
+        this.waitForInputValue(val).subscribe((t) => this.inputControl.setValue(t));
     }
 
     onChange = (val: number[]) => {};
@@ -97,7 +97,7 @@ export class SelectCustomTriggerExample
          * before emitting updated values to the parent form. In this case, the id is being pulled from
          * the ListItem
          */
-        this.toppings.valueChanges
+        this.inputControl.valueChanges
             .pipe(
                 filter(Boolean),
                 map((t) => t.map((i) => i.id))
@@ -117,9 +117,9 @@ export class SelectCustomTriggerExample
     setDisabledState?(isDisabled: boolean): void {
         console.log('setDisabledState');
         if (isDisabled){
-            this.toppings.disable();
+            this.inputControl.disable();
         } else {
-            this.toppings.enable();
+            this.inputControl.enable();
 
         }
     }
@@ -129,7 +129,7 @@ export class SelectCustomTriggerExample
     // #region Validator
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
         console.log('validate');
-        return this.toppings.errors;
+        return this.inputControl.errors;
     }
     
     OnValidatorChange = () => {};
