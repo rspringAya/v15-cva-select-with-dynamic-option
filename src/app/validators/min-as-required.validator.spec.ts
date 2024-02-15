@@ -9,18 +9,51 @@ describe('minAsRequired', () => {
     it('should not error on null', () => {
         expect(
             AyaValidators.minAsRequired(2)(new FormControl(null))
-        ).toBeNull();
+        ).toEqual({
+            required: true,
+            min: {
+                min: 2,
+                actual: null
+            }
+        });
     });
 
+    /** FormControl natively converts `undefined` to `null` */
     it('should not error on undefined', () => {
         expect(
             AyaValidators.minAsRequired(2)(new FormControl(undefined))
-        ).toBeNull();
+        ).toEqual({
+            required: true,
+            min: {
+                min: 2,
+                actual: null
+            }
+        });
     });
 
     it('should return null if NaN after parsing', () => {
         expect(AyaValidators.minAsRequired(2)(new FormControl('a'))).toBeNull();
     });
+
+    it('should return a validation error on small values from objects with id', () => {
+        expect(AyaValidators.minAsRequired(0)(new FormControl({id: -1, name: ''}))).toEqual({
+            required: true,
+            min: {
+                min: 0,
+                actual: -1
+            }
+        });
+    });
+
+    // it('should return a validation error on null', () => {
+    //     expect(AyaValidators.minAsRequired(0)(new FormControl({id: 1, name: ''}))).toEqual({
+    //         required: true,
+    //         min: {
+    //             min: 0,
+    //             actual: null
+    //         }
+    //     });
+    // });
 
     it('should return a validation error on small values', () => {
         expect(AyaValidators.minAsRequired(2)(new FormControl(1))).toEqual({

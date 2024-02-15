@@ -24,6 +24,7 @@ import {
 } from 'rxjs';
 import {
     debounceTime,
+    delay,
     filter,
     map,
     scan,
@@ -32,7 +33,7 @@ import {
     tap,
     withLatestFrom
 } from 'rxjs/operators';
-import { hasControlNilValidator, inheritRequired } from '../forms';
+import { hasControlNilValidator, inheritMinAsRequired, inheritMinIdentifiableAsRequired, inheritRequired } from '../forms';
 import {
     ItemOrId,
     ListItem,
@@ -41,7 +42,7 @@ import {
     resolveToNumberOrId,
     resolveToNumberOrString
 } from '../list-item.models';
-import { beginsWith, isEmpty } from '../obj-utilities';
+import { beginsWith, isEmpty, isOfType } from '../obj-utilities';
 import { UnsubscribeOnDestroy } from '../unsubscribe-ondestroy';
 
 /** @title Select with custom trigger text */
@@ -79,7 +80,6 @@ export class SelectAutoComplete
     private readonly panelOpened$ = new Subject<string>();
     constructor(private readonly _fb: FormBuilder) {
         super();
-
         this.inputControl = this._fb.control<string | null>('');
         this._initializeFilteredList();
     }
@@ -139,19 +139,22 @@ export class SelectAutoComplete
      *
      */
     writeValue(v: ItemOrId | null): void {
-        const val = resolveToNumberOrString(v);
-        this._waitForInputValue(val).subscribe((t) => {
-            // emitEvent here is false, because the parent form is the source of writeValue. Therefore
+        this._waitForInputValue(v).subscribe((t) => {
+            // Typically using { emitEvent: false }, because the parent form is the source of writeValue. Therefore
             // emitting changes to the parent is redundant and falsely sets dirty to true.
-            console.log(t);
-            this.inputControl.setValue(t, { emitEvent: false });
+            // There is one exception to that. If the value written to the control is a list item that is
+            // not in the options, the control should emit the change from the invalid value to empty.
+            if (isOfType<ListItem>(v, ['name']) && v.name !== t && v.name !== '' && v.id !== -1){
+                this.inputControl.setValue(t);
+            } else {
+                this.inputControl.setValue(t, { emitEvent: false });
+            }
         });
     }
 
     onChange = (val: number | null) => {};
     registerOnChange(fn: any) {
         this.onChange = fn;
-
         /**
          * As a common practice, this is where the control value updates should be filtered/transformed
          * before emitting updated values to the parent form. In this case, the id is being pulled from
@@ -161,9 +164,9 @@ export class SelectAutoComplete
             .pipe(
                 switchMap((t) => this.findItemInList(t)),
                 map((id) =>
-                    this.inputControl.hasValidator(Validators.required)
-                        ? -1
-                        : null
+                    hasControlNilValidator(this.inputControl) //.hasValidator(Validators.required)
+                        ? null
+                        : -1
                 )
             )
             .subscribe((t) => {
@@ -196,8 +199,7 @@ export class SelectAutoComplete
 
     // #region Validator
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
-        inheritRequired(control, this.inputControl);
-        // inheritMinIdentifiableAsRequired(control, this.inputControl);
+        inheritMinAsRequired(control, this.inputControl);
         const { value } = this.inputControl;
         if (!isEmpty(value, [-1]) && !this.__listOptions$.value.find(i => i.name === this.inputControl.value) ) {
             console.log(value);
@@ -318,9 +320,21 @@ export class SelectAutoComplete
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
             this.listOptions$
         ]).pipe(
+            // TODO: Find another solution to this...
+            /* Right now, the delay is because the inner control.setValue is called before registerOnChanges happens.
+             * When the initial value does not match any id/name combinations in the provided ListItems and the ListItems
+             * are immediately available, the setValue which should emit the change to an "empty" value to the parent is not called.
+             */
+            delay(1),
             // Create a distinct list of listOptions that match the id from the value(s).
             map(
-                ([v, o]): string | null => o.find((i) => i.id === v)?.name ?? ''
+                ([v, o]): string | null => {
+                    if (isOfType<ListItem>(val, ['id', 'name'])){
+                        const r = o.find((i) => i.id === val.id && i.name === val.name)?.name ?? '';
+                        return r;
+                    }
+                    return o.find((i) => i.id === v)?.name ?? '';
+                }
             )
         );
     }

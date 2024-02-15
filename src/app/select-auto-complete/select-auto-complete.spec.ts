@@ -5,8 +5,7 @@ import {
     FormControl,
     FormsModule,
     ReactiveFormsModule,
-    ValidatorFn,
-    Validators
+    ValidatorFn
 } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -15,7 +14,10 @@ import { SpectatorHost, createHostFactory } from '@ngneat/spectator';
 import { Observable, ReplaySubject } from 'rxjs';
 import { ListItem } from '../list-item.models';
 import { SelectAutoComplete } from './select-auto-complete';
-import { initialValueAndValidatorTestScenarios } from './test-scenarios';
+import {
+    initialValueAndValidatorTestScenarios,
+    invalidInitialValueAndValidatorTestScenarios
+} from './test-scenarios';
 
 describe('SelectAutoComplete', () => {
     /** The initial value used when defining the parent form */
@@ -23,7 +25,7 @@ describe('SelectAutoComplete', () => {
         /** The validator assigned to the parent form (this is where the parent form config
          * can define whether the CVA should be required)
          */
-        parentFormValidators: ValidatorFn[];
+        parentFormValidators: ValidatorFn | null;
 
     /**
      * A default list of ListItem to later feed to the parent ReplaySubject
@@ -191,7 +193,7 @@ describe('SelectAutoComplete', () => {
                     JSON.stringify(expectedParentValue);
                 beforeEach(() => {
                     parentFormInitialValue = initialValue;
-                    parentFormValidators = [validator];
+                    parentFormValidators = validator;
 
                     spectator = createComponent(`<aya-select-auto-complete
                                                 
@@ -241,19 +243,25 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.control.pristine).toBeTrue();
 
-                    spectator.component.listOptions$?.subscribe(i => {
+                    spectator.component.listOptions$?.subscribe((i) => {
                         console.log(i);
-                        console.log(spectator.component.inputControl.value)
-                        console.log(spectator.hostComponent.control.errors)
-                        console.log(spectator.hostComponent.control.value)
-                    })
+                        console.log(spectator.component.inputControl.value);
+                        console.log(spectator.hostComponent.control.errors);
+                        console.log(spectator.hostComponent.control.value);
+                    });
+                    console.log(spectator.component.inputControl.errors);
+                    console.log(spectator.hostComponent.control.errors);
+                    console.log(expectedParentValue);
+
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
                     );
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
-                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2].name);
+                    spectator.component.inputControl.setValue(
+                        listItemsWithZeroPayloadForHostStore[2].name
+                    );
 
                     tick(100);
                     spectator.detectChanges();
@@ -308,7 +316,7 @@ describe('SelectAutoComplete', () => {
                     JSON.stringify(expectedParentValue);
                 beforeEach(() => {
                     parentFormInitialValue = initialValue;
-                    parentFormValidators = [validator];
+                    parentFormValidators = validator;
 
                     spectator = createComponent(`<aya-select-auto-complete
                                                 
@@ -367,9 +375,12 @@ describe('SelectAutoComplete', () => {
                         expectedParentValidatorStatus
                     );
 
-                    expect(spectator.hostComponent.changesCount).toBe(0);
+                    expect(spectator.hostComponent.changesCount).toBe(0),
+                        'Host Component changes count';
 
-                    spectator.component.inputControl.setValue(listItemsWithZeroPayloadForHostStore[2].name);
+                    spectator.component.inputControl.setValue(
+                        listItemsWithZeroPayloadForHostStore[2].name
+                    );
 
                     tick(100);
                     spectator.detectChanges();
@@ -386,6 +397,266 @@ describe('SelectAutoComplete', () => {
                     emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
                         listItems
                     );
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // Tick past valueChanges debounceTime(100)
+                    tick(100);
+                    spectator.detectChanges();
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    expect(spectator.component.inputControl.errors).toEqual(
+                        errors
+                    );
+
+                    expect(spectator.component.inputControl.status).toEqual(
+                        validatorStatus
+                    );
+                }));
+            });
+        }
+    );
+
+    invalidInitialValueAndValidatorTestScenarios.forEach(
+        ({
+            initialValue,
+            validator,
+            validatorName,
+            validatorStatus,
+            errors,
+            expectedInternalValue,
+            expectedParentValue,
+            expectedParentValidatorStatus
+        }) => {
+            const strInitialValue = JSON.stringify(initialValue);
+            describe(`with list items immediately available, initial value set to (${strInitialValue}), 
+                        and validator '${validatorName}'`, () => {
+                const strInternalValue = JSON.stringify(expectedInternalValue);
+                const strExpectedParentValue =
+                    JSON.stringify(expectedParentValue);
+                beforeEach(() => {
+                    parentFormInitialValue = initialValue;
+                    parentFormValidators = validator;
+
+                    spectator = createComponent(`<aya-select-auto-complete
+                                                
+                                                [listItems]="listItems$ | async"
+                                                [isLoading]="isLoading"
+                                                [formControl]="control"
+                                                label="Test Autocomplete"
+                                            >
+                                            </aya-select-auto-complete>`);
+
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        validatorName === 'AyaValidators.minAsRequired(1)'
+                            ? listItemsWithoutZeroPayloadForHostStore
+                            : listItemsWithZeroPayloadForHostStore
+                    );
+                });
+
+                it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
+                        (${strExpectedParentValue}).`, fakeAsync(() => {
+                    //Set parent list items
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // For debounce in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    expect(spectator.component.inputControl.errors).toEqual(
+                        errors
+                    );
+
+                    expect(spectator.component.inputControl.status).toEqual(
+                        validatorStatus
+                    );
+
+                    expect(
+                        spectator.hostComponent.control.untouched
+                    ).toBeTrue();
+
+                    expect(
+                        spectator.hostComponent.control.pristine
+                    ).toBeFalse();
+
+                    spectator.component.listOptions$?.subscribe((i) => {
+                        console.log(i);
+                        console.log(spectator.component.inputControl.value);
+                        console.log(spectator.hostComponent.control.errors);
+                        console.log(spectator.hostComponent.control.value);
+                    });
+                    console.log(spectator.component.inputControl.errors);
+                    console.log(spectator.hostComponent.control.errors);
+                    console.log(expectedParentValue);
+
+                    expect(spectator.hostComponent.control.status).toEqual(
+                        expectedParentValidatorStatus
+                    );
+
+                    expect(spectator.hostComponent.changesCount).toBe(1);
+
+                    spectator.component.inputControl.setValue(
+                        listItemsWithZeroPayloadForHostStore[2].name
+                    );
+
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.hostComponent.changesCount).toBe(2);
+                }));
+
+                it('to be invalid', fakeAsync(() => {
+                    tick(1);
+                    spectator.detectChanges();
+                    // Second tick for the delay for register on changes to occur
+                    tick(1);
+                    spectator.detectChanges();
+
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    expect(spectator.component.inputControl.errors).toEqual(
+                        errors
+                    );
+
+                    expect(spectator.component.inputControl.status).toEqual(
+                        validatorStatus
+                    );
+                }));
+            });
+        }
+    );
+
+    invalidInitialValueAndValidatorTestScenarios.forEach(
+        ({
+            initialValue,
+            validator,
+            validatorName,
+            validatorStatus,
+            errors,
+            expectedInternalValue,
+            expectedParentValue,
+            expectedParentValidatorStatus
+        }) => {
+            const strInitialValue = JSON.stringify(initialValue);
+            describe(`with list items asynchronously delayed by 100ms, initial value set to (${strInitialValue}), 
+                        and validator '${validatorName}'`, () => {
+                const strInternalValue = JSON.stringify(expectedInternalValue);
+                let listItems: ListItem[];
+                const strExpectedParentValue =
+                    JSON.stringify(expectedParentValue);
+                beforeEach(() => {
+                    parentFormInitialValue = initialValue;
+                    parentFormValidators = validator;
+
+                    spectator = createComponent(`<aya-select-auto-complete
+                                                
+                                                [listItems]="listItems$ | async"
+                                                [isLoading]="isLoading"
+                                                [formControl]="control"
+                                                label="Test Autocomplete"
+                                            >
+                                            </aya-select-auto-complete>`);
+                    listItems =
+                        validatorName === 'AyaValidators.minAsRequired(1)'
+                            ? listItemsWithoutZeroPayloadForHostStore
+                            : listItemsWithZeroPayloadForHostStore;
+                });
+
+                it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
+                        (${strExpectedParentValue}).`, fakeAsync(() => {
+                    // For debounce in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // Tick past valueChanges debounceTime(100)
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    expect(spectator.component.inputControl.errors).toEqual(
+                        errors
+                    );
+
+                    expect(spectator.component.inputControl.status).toEqual(
+                        validatorStatus
+                    );
+
+                    expect(
+                        spectator.hostComponent.control.untouched
+                    ).toBeTrue();
+
+                    expect(
+                        spectator.hostComponent.control.pristine
+                    ).toBeFalse();
+
+                    expect(spectator.hostComponent.control.status).toEqual(
+                        expectedParentValidatorStatus
+                    );
+
+                    expect(spectator.hostComponent.changesCount).toBe(1),
+                        'Host Component changes count';
+
+                    spectator.component.inputControl.setValue(
+                        listItemsWithZeroPayloadForHostStore[2].name
+                    );
+
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.hostComponent.changesCount).toBe(2);
+                }));
+
+                it(`to be ${validatorStatus}`, fakeAsync(() => {
+                    // For debounce in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
+                    tick(1);
+                    spectator.detectChanges();
+                    
+                    // Second tick for the delay for register on changes to occur
                     tick(1);
                     spectator.detectChanges();
 

@@ -1,4 +1,11 @@
-import { AbstractControl, ValidationErrors, Validators } from '@angular/forms';
+import {
+    AbstractControl,
+    FormControl,
+    ValidationErrors,
+    Validators
+} from '@angular/forms';
+import { Identifiable } from '../list-item.models';
+import { isOfType } from '../obj-utilities';
 
 export const MinAsRequiredErrorKey = 'required';
 
@@ -11,8 +18,29 @@ export const MinAsRequiredErrorKey = 'required';
  */
 export const minAsRequired =
     (min: number) =>
-    (control: AbstractControl): ValidationErrors | null =>
-        Validators.min(min)(control)
+    (control: AbstractControl): ValidationErrors | null => {
+        const { value } = control;
+
+        if (
+            (value ?? undefined) !== undefined &&
+            value !== Infinity &&
+            value !== -Infinity &&
+            isOfType<Identifiable>(value, ['id'])
+        ) {
+            const { id } = value;
+            const errors = Validators.min(min)(new FormControl(id))
+                ? {
+                      [MinAsRequiredErrorKey]: true,
+                      min: {
+                          min,
+                          actual: id
+                      }
+                  }
+                : null;
+            return errors;
+        }
+        
+        return Validators.min(min)(control)  || value === null
             ? {
                   [MinAsRequiredErrorKey]: true,
                   min: {
@@ -21,3 +49,4 @@ export const minAsRequired =
                   }
               }
             : null;
+    };

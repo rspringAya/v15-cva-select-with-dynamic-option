@@ -5,7 +5,7 @@ import {
     Validators
 } from '@angular/forms';
 import { Identifiable } from '../list-item.models';
-import { isOfType } from '../obj-utilities';
+import { isEmpty, isOfType } from '../obj-utilities';
 
 export const MinIdentifiableAsRequiredErrorKey = 'required';
 
@@ -37,6 +37,15 @@ export const minIdentifiableAsRequired =
                   }
                 : null;
             return errors;
+        }
+        if (isEmpty(val, [-1])){
+            return {
+                [MinIdentifiableAsRequiredErrorKey]: true,
+                minId: {
+                    minId: min,
+                    actualId: ''
+                }
+            }
         }
         return null;
     };
