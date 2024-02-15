@@ -320,7 +320,6 @@ export class SelectAutoComplete
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
             this.listOptions$
         ]).pipe(
-            // TODO: Find another solution to this...
             /* Right now, the delay is because the inner control.setValue is called before registerOnChanges happens.
              * When the initial value does not match any id/name combinations in the provided ListItems and the ListItems
              * are immediately available, the setValue which should emit the change to an "empty" value to the parent is not called.

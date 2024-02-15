@@ -243,16 +243,6 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.control.pristine).toBeTrue();
 
-                    spectator.component.listOptions$?.subscribe((i) => {
-                        console.log(i);
-                        console.log(spectator.component.inputControl.value);
-                        console.log(spectator.hostComponent.control.errors);
-                        console.log(spectator.hostComponent.control.value);
-                    });
-                    console.log(spectator.component.inputControl.errors);
-                    console.log(spectator.hostComponent.control.errors);
-                    console.log(expectedParentValue);
-
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
                     );
@@ -375,8 +365,7 @@ describe('SelectAutoComplete', () => {
                         expectedParentValidatorStatus
                     );
 
-                    expect(spectator.hostComponent.changesCount).toBe(0),
-                        'Host Component changes count';
+                    expect(spectator.hostComponent.changesCount).toBe(0);
 
                     spectator.component.inputControl.setValue(
                         listItemsWithZeroPayloadForHostStore[2].name
@@ -493,16 +482,6 @@ describe('SelectAutoComplete', () => {
                     expect(
                         spectator.hostComponent.control.pristine
                     ).toBeFalse();
-
-                    spectator.component.listOptions$?.subscribe((i) => {
-                        console.log(i);
-                        console.log(spectator.component.inputControl.value);
-                        console.log(spectator.hostComponent.control.errors);
-                        console.log(spectator.hostComponent.control.value);
-                    });
-                    console.log(spectator.component.inputControl.errors);
-                    console.log(spectator.hostComponent.control.errors);
-                    console.log(expectedParentValue);
 
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
@@ -631,8 +610,7 @@ describe('SelectAutoComplete', () => {
                         expectedParentValidatorStatus
                     );
 
-                    expect(spectator.hostComponent.changesCount).toBe(1),
-                        'Host Component changes count';
+                    expect(spectator.hostComponent.changesCount).toBe(1);
 
                     spectator.component.inputControl.setValue(
                         listItemsWithZeroPayloadForHostStore[2].name
@@ -655,7 +633,7 @@ describe('SelectAutoComplete', () => {
                     );
                     tick(1);
                     spectator.detectChanges();
-                    
+
                     // Second tick for the delay for register on changes to occur
                     tick(1);
                     spectator.detectChanges();
