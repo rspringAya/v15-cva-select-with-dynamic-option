@@ -7,8 +7,7 @@ import {
     NG_VALIDATORS,
     NG_VALUE_ACCESSOR,
     ValidationErrors,
-    Validator,
-    Validators
+    Validator
 } from '@angular/forms';
 import {
     MatAutocomplete,
@@ -33,14 +32,13 @@ import {
     tap,
     withLatestFrom
 } from 'rxjs/operators';
-import { hasControlNilValidator, inheritMinAsRequired, inheritMinIdentifiableAsRequired, inheritRequired } from '../forms';
+import { hasControlNilValidator, inheritMinAsRequired } from '../forms';
 import {
     ItemOrId,
     ListItem,
     SelectedItem,
     isListItem,
-    resolveToNumberOrId,
-    resolveToNumberOrString
+    resolveToNumberOrId
 } from '../list-item.models';
 import { beginsWith, isEmpty, isOfType } from '../obj-utilities';
 import { UnsubscribeOnDestroy } from '../unsubscribe-ondestroy';
@@ -85,27 +83,32 @@ export class SelectAutoComplete
     }
 
     private readonly _setPotentialExactMatch$ = new Subject<void>();
-    private readonly __listOptions$ = new BehaviorSubject<ListItem[]>([]);
-    private readonly _listOptions$ = this.__listOptions$.pipe(scan(
-        (acc: { skip: boolean; value: ListItem[] }, curr: ListItem[]) => {
-            if (curr?.length > 0 || acc.value?.length !== 0 || !acc.skip) {
-                // If current array is non-empty, or after the first non-empty array has been received,
-                // we stop skipping emissions.
-                return { skip: false, value: curr };
-            }
-            // Initially skip, but don't change the value yet.
-            return acc;
-        },
-        { skip: true, value: [] }
-    ),
-    // Only emit when skip is false
-    filter((acc) => !acc.skip), 
-    map((acc) => acc.value));
 
     /**
      * This BehaviorSubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
      */
-    readonly listOptions$ = this._listOptions$.pipe(
+    private readonly __listOptions$ = new BehaviorSubject<ListItem[]>([]);
+
+    /**
+     * The BehaviorSubject starts as an empty array, but this initial empty array must be ignored and wait for
+     * the first non-empty array. After which, 
+     */
+    readonly listOptions$ = this.__listOptions$.pipe(
+        scan(
+            (acc: { skip: boolean; value: ListItem[] }, curr: ListItem[]) => {
+                if (curr?.length > 0 || acc.value?.length !== 0 || !acc.skip) {
+                    // If current array is non-empty, or after the first non-empty array has been received,
+                    // we stop skipping emissions.
+                    return { skip: false, value: curr };
+                }
+                // Initially skip, but don't change the value yet.
+                return acc;
+            },
+            { skip: true, value: [] }
+        ),
+        // Only emit when skip is false
+        filter((acc) => !acc.skip),
+        map((acc) => acc.value),
         tap((l) => {
             this._setValueIfInListItemOrClear(l);
         })
@@ -144,7 +147,12 @@ export class SelectAutoComplete
             // emitting changes to the parent is redundant and falsely sets dirty to true.
             // There is one exception to that. If the value written to the control is a list item that is
             // not in the options, the control should emit the change from the invalid value to empty.
-            if (isOfType<ListItem>(v, ['name']) && v.name !== t && v.name !== '' && v.id !== -1){
+            if (
+                isOfType<ListItem>(v, ['name']) &&
+                v.name !== t &&
+                v.name !== '' &&
+                v.id !== -1
+            ) {
                 this.inputControl.setValue(t);
             } else {
                 this.inputControl.setValue(t, { emitEvent: false });
@@ -201,7 +209,12 @@ export class SelectAutoComplete
     validate(control: AbstractControl<any, any>): ValidationErrors | null {
         inheritMinAsRequired(control, this.inputControl);
         const { value } = this.inputControl;
-        if (!isEmpty(value, [-1]) && !this.__listOptions$.value.find(i => i.name === this.inputControl.value) ) {
+        if (
+            !isEmpty(value, [-1]) &&
+            !this.__listOptions$.value.find(
+                (i) => i.name === this.inputControl.value
+            )
+        ) {
             console.log(value);
             this.inputControl.setErrors({ invalidOption: 'invalid option' });
         }
@@ -224,8 +237,6 @@ export class SelectAutoComplete
 
     trackById = (item: any) => item.id;
 
-    /** Not executed until after the view is initialized.
-     * This ensures ViewChild(auto) is not undefined. */
     private _initializeFilteredList(): void {
         this.filteredOptions$ = combineLatest([
             this._onTypingOrTrigger(),
@@ -233,6 +244,10 @@ export class SelectAutoComplete
         ]).pipe(
             map(([val, listItems]) => this._filterOptions(val, listItems)),
             takeUntil(this.d$)
+            /** As mentioned above, Adding `@UntilDestroy()` causes the following error:
+             * NG0204: Token InjectionToken NgValidators is missing a ɵprov definition.
+             * Investigate later.
+             */
             //untilDestroyed(this)
         );
 
@@ -242,8 +257,8 @@ export class SelectAutoComplete
             .subscribe(([_, options]) => {
                 if (
                     options?.length === 1 &&
-                     // TODO: This version of the control only ever sets the control
-                     // value to a string. Potentially get rid of this check.
+                    // TODO: This version of the control only ever sets the control
+                    // value to a string. Potentially get rid of this check.
                     !isListItem(this.inputControl.value)
                 ) {
                     this.inputControl.setValue(options[0].name ?? null);
@@ -283,15 +298,12 @@ export class SelectAutoComplete
         return isListItem(item) ? item?.id : Number(item);
     }
 
-    /**
-     * Set to null or -1 based on whether control is required/has min value.
-     */
     private _clearValue() {
         this.inputControl.setValue('', { emitEvent: false });
     }
 
     private findItemInList(val: string | null) {
-        return this._listOptions$.pipe(
+        return this.listOptions$.pipe(
             map((l) => l.find((i) => i.name === val)?.id ?? null)
         );
     }
@@ -322,21 +334,24 @@ export class SelectAutoComplete
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
             this.listOptions$
         ]).pipe(
-            /* Right now, the delay is because the inner control.setValue is called before registerOnChanges happens.
-             * When the initial value does not match any id/name combinations in the provided ListItems and the ListItems
-             * are immediately available, the setValue which should emit the change to an "empty" value to the parent is not called.
+            /**
+             * The delay(1) is because the inner control.setValue is called before
+             * registerOnChanges happens. When the initial value does not match any id/name
+             * combinations in the provided ListItems and the ListItems are immediately
+             * available, onChange is not called, which must happen to emit the change to an
+             * "empty" value to the parent.
              */
             delay(1),
             // Create a distinct list of listOptions that match the id from the value(s).
-            map(
-                ([v, o]): string | null => {
-                    if (isOfType<ListItem>(val, ['id', 'name'])){
-                        const r = o.find((i) => i.id === val.id && i.name === val.name)?.name ?? '';
-                        return r;
-                    }
-                    return o.find((i) => i.id === v)?.name ?? '';
+            map(([v, o]): string | null => {
+                if (isOfType<ListItem>(val, ['id', 'name'])) {
+                    const r =
+                        o.find((i) => i.id === val.id && i.name === val.name)
+                            ?.name ?? '';
+                    return r;
                 }
-            )
+                return o.find((i) => i.id === v)?.name ?? '';
+            })
         );
     }
 }
