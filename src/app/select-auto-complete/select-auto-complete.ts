@@ -31,6 +31,7 @@ import {
     switchMap,
     takeUntil,
     tap,
+    throttleTime,
     withLatestFrom
 } from 'rxjs/operators';
 import { hasControlNilValidator, inheritMinAsRequired } from '../forms';
@@ -88,13 +89,14 @@ export class SelectAutoComplete
     /**
      * This BehaviorSubject will either emit the ListItems to subscribers, or hold the ListItems until subscribed to.
      */
-    private readonly __listOptions$ = new BehaviorSubject<ListItem[]>([]);
+    private readonly _listOptions$ = new BehaviorSubject<ListItem[]>([]);
 
     /**
      * The BehaviorSubject starts as an empty array, but this initial empty array must be ignored and wait for
-     * the first non-empty array. After which,
+     * the first non-empty array. After which, an empty array of list items could be a valid update to the control,
+     * in which case the value of the control would then be cleared by other mechanisms in this component.
      */
-    readonly listOptions$ = this.__listOptions$.pipe(
+    readonly listOptions$ = this._listOptions$.pipe(
         scan(
             (acc: { skip: boolean; value: ListItem[] }, curr: ListItem[]) => {
                 if (curr?.length > 0 || acc.value?.length !== 0 || !acc.skip) {
@@ -117,7 +119,7 @@ export class SelectAutoComplete
 
     @Input()
     set listItems(value: ListItem[]) {
-        this.__listOptions$.next(value);
+        this._listOptions$.next(value);
     }
 
     filteredOptions$: Observable<ListItem[]> | undefined;
@@ -150,14 +152,18 @@ export class SelectAutoComplete
                 v.name !== '' &&
                 v.id !== -1;
             const originalIsInvalidPrimitive =
-                ((typeof v === 'string' || typeof v === 'number') && initValInvalid) &&
-                    v !== -1;
+                (typeof v === 'string' || typeof v === 'number') &&
+                initValInvalid &&
+                v !== -1;
             // *********************
             // Typically using { emitEvent: false }, because the parent form is the source of writeValue. Therefore
             // emitting changes to the parent is redundant and falsely sets dirty to true.
             // There is one exception to that. If the value written to the control is a list item that is
             // not in the options, the control should emit the change from the invalid value to empty.
-            if (changedFromOriginalListItemValue || originalIsInvalidPrimitive) {
+            if (
+                changedFromOriginalListItemValue ||
+                originalIsInvalidPrimitive
+            ) {
                 this.inputControl.setValue(asString);
             } else {
                 this.inputControl.setValue(asString, { emitEvent: false });
@@ -220,7 +226,7 @@ export class SelectAutoComplete
         const { value } = this.inputControl;
         if (
             !isEmpty(value, [-1]) &&
-            !this.__listOptions$.value.find(
+            !this._listOptions$.value.find(
                 (i) => i.name === this.inputControl.value
             )
         ) {
@@ -239,9 +245,6 @@ export class SelectAutoComplete
         this.onTouched();
         this._setPotentialExactMatch$.next();
     }
-    displayFn = (item?: ItemOrId | null): string =>
-        // This is to prevent the number (id) value from being displayed until a listItem is selected.
-        (isListItem(item) ? item.name : '') ?? '';
 
     trackById = (item: any) => item.id;
 
@@ -261,14 +264,17 @@ export class SelectAutoComplete
 
         this._setPotentialExactMatch$
             .asObservable()
-            .pipe(withLatestFrom(this.filteredOptions$))
+            .pipe(
+                withLatestFrom(this.filteredOptions$),
+                takeUntil(this.d$)
+                /** As mentioned above, Adding `@UntilDestroy()` causes the following error:
+                 * NG0204: Token InjectionToken NgValidators is missing a ɵprov definition.
+                 * Investigate later.
+                 */
+                //untilDestroyed(this)
+            )
             .subscribe(([_, options]) => {
-                if (
-                    options?.length === 1 &&
-                    // TODO: This version of the control only ever sets the control
-                    // value to a string. Potentially get rid of this check.
-                    !isListItem(this.inputControl.value)
-                ) {
+                if (options?.length === 1) {
                     this.inputControl.setValue(options[0].name ?? null);
                 } else {
                     this.inputControl.updateValueAndValidity();
@@ -276,11 +282,23 @@ export class SelectAutoComplete
             });
     }
 
+    /**
+     * This accounts for the panel opening and the control value changes.
+     *
+     * The debounceTime(100) ignore rapidly typed characters within 100ms
+     * and emits the value as is at the end of that 100ms.
+     *
+     * The throttleTime(100) takes the first emission of the two observables
+     * and ignore subsequent emissions for 100ms. This helps with the two observables
+     * having a race condition where the panel opens and the control value immediately
+     * being set a value. This may not be the best solution versus finding the
+     * place the control is being set upon the panel opening.
+     */
     private _onTypingOrTrigger() {
         return merge(
             this.panelOpened$.pipe(map(() => '')),
             this.inputControl.valueChanges.pipe(debounceTime(100))
-        );
+        ).pipe(throttleTime(90));
     }
 
     /**
@@ -359,7 +377,10 @@ export class SelectAutoComplete
                     const r = o.find(
                         (i) => i.id === val.id && i.name === val.name
                     )?.name;
-                    return { asString: r ?? '', initValInvalid: r === undefined };
+                    return {
+                        asString: r ?? '',
+                        initValInvalid: r === undefined
+                    };
                 }
                 const r = o.find((i) => i.id === v)?.name;
                 return { asString: r ?? '', initValInvalid: r === undefined };

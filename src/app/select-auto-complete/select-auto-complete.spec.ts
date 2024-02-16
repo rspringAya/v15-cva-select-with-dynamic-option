@@ -7,10 +7,18 @@ import {
     ReactiveFormsModule,
     ValidatorFn
 } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import {
+    MatAutocomplete,
+    MatAutocompleteModule,
+    MatAutocompleteTrigger
+} from '@angular/material/autocomplete';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-import { SpectatorHost, createHostFactory } from '@ngneat/spectator';
+import {
+    SpectatorHost,
+    createHostFactory,
+    createSpyObject
+} from '@ngneat/spectator';
 import { Observable, ReplaySubject } from 'rxjs';
 import { ListItem } from '../list-item.models';
 import { SelectAutoComplete } from './select-auto-complete';
@@ -107,6 +115,8 @@ describe('SelectAutoComplete', () => {
     }
 
     let spectator: SpectatorHost<SelectAutoComplete, TestHostComponent>;
+    const matAutocompleteTriggerSpy = createSpyObject(MatAutocompleteTrigger);
+    const matAutocompleteSpy = createSpyObject(MatAutocomplete);
 
     /**
      * Be sure to call `tick(100)` to flush out the `debounceTime(100)` in valueChanges
@@ -250,6 +260,14 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
+                    spectator.component.openPanel(matAutocompleteTriggerSpy);
+                    expect(matAutocompleteTriggerSpy.openPanel).toHaveBeenCalled();
+
+                    spectator.component.panelOpened(matAutocompleteSpy);
+                    // expect(spectator.component)
+                    
+
+
                     // Also just being sure next value change goes through.
                     const nextValue = listItems[2];
 
@@ -257,6 +275,8 @@ describe('SelectAutoComplete', () => {
                         nextValue.name ?? null
                     );
 
+                    tick(100);
+                    spectator.detectChanges();
                     tick(100);
                     spectator.detectChanges();
 
@@ -331,20 +351,7 @@ describe('SelectAutoComplete', () => {
 
                 it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
                         (${strExpectedParentValue}).`, fakeAsync(() => {
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
-
-                    //Set parent list items
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        listItems
-                    );
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndEmitNewListAndTickAgain(spectator, listItems);
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -379,19 +386,7 @@ describe('SelectAutoComplete', () => {
                     // Arrange
 
                     // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
-
-                    //Set parent list items
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        listItems
-                    );
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounceTime(100) in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndEmitNewListAndTickAgain(spectator, listItems);
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -409,6 +404,8 @@ describe('SelectAutoComplete', () => {
                     // For debounceTime(100) in valueChanges
                     tick(100);
                     spectator.detectChanges();
+                    tick(100);
+                    spectator.detectChanges();
 
                     // Assert
                     expect(spectator.hostComponent.changesCount).toBe(1);
@@ -420,20 +417,7 @@ describe('SelectAutoComplete', () => {
                 it(`should initialize with value (${strInternalValue}), and onBlur should mark parent as touched.`, fakeAsync(() => {
                     // Arrange
 
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
-
-                    //Set parent list items
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        listItems
-                    );
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounceTime(100) in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndEmitNewListAndTickAgain(spectator, listItems);
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -450,6 +434,8 @@ describe('SelectAutoComplete', () => {
                     // For debounceTime(100) in valueChanges
                     tick(100);
                     spectator.detectChanges();
+                    tick(100);
+                    spectator.detectChanges();
 
                     // Assert
                     expect(spectator.hostComponent.changesCount).toBe(1);
@@ -457,20 +443,8 @@ describe('SelectAutoComplete', () => {
                 }));
 
                 it(`to be ${validatorStatus}`, fakeAsync(() => {
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndEmitNewListAndTickAgain(spectator, listItems);
 
-                    //Set parent list items
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        listItems
-                    );
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
                     );
@@ -700,6 +674,27 @@ describe('SelectAutoComplete', () => {
         spectator.detectChanges();
 
         // For debounce in valueChanges
+        tick(200);
+        spectator.detectChanges();
+    };
+
+    const tickAndEmitNewListAndTickAgain = (
+        spectator: SpectatorHost<SelectAutoComplete, TestHostComponent>,
+        listItems: ListItem[]
+    ) => {
+        tick(100);
+        spectator.detectChanges();
+
+        //Set parent list items
+        emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(listItems);
+        tick(1);
+        spectator.detectChanges();
+
+        // For debounceTime(100) in valueChanges
+        tick(100);
+        spectator.detectChanges();
+
+        // For throttleTime(100) in onTypingOrTrigger
         tick(100);
         spectator.detectChanges();
     };
