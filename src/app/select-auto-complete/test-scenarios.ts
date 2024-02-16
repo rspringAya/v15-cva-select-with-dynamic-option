@@ -32,7 +32,7 @@ export const invalidInitialValueAndValidatorTestScenarios: CvaTestScenarios[] = 
         expectedParentValue: -1,
         expectedParentValidatorStatus: 'INVALID'
     },
-    // Revisit this test case. Is this needed?
+    // Revisit this test case. What are the expectations?
     // {
     //     initialValue: 0,
     //     validatorName: 'AyaValidators.minAsRequired(1)',
