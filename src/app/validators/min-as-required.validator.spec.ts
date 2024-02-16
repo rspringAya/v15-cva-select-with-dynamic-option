@@ -6,7 +6,7 @@ describe('minAsRequired', () => {
         expect(AyaValidators.minAsRequired(2)(new FormControl(''))).toBeNull();
     });
 
-    it('should not error on null', () => {
+    it('should error on null', () => {
         expect(
             AyaValidators.minAsRequired(2)(new FormControl(null))
         ).toEqual({
@@ -19,7 +19,7 @@ describe('minAsRequired', () => {
     });
 
     /** FormControl natively converts `undefined` to `null` */
-    it('should not error on undefined', () => {
+    it('should error on undefined', () => {
         expect(
             AyaValidators.minAsRequired(2)(new FormControl(undefined))
         ).toEqual({

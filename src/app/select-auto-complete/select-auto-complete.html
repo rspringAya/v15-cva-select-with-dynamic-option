@@ -15,12 +15,11 @@
         autoActiveFirstOption
         hideSingleSelectionIndicator
         #auto="matAutocomplete"
-        [displayWith]="displayFn"
         (opened)="panelOpened(auto)"
     >
         <mat-option
             *ngFor="let option of filteredOptions$ | async; trackBy: trackById"
-            [value]="option"
+            [value]="option.name"
         >
             {{ option.name }}
         </mat-option>

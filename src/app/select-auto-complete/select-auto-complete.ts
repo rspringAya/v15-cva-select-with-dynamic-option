@@ -24,6 +24,7 @@ import {
 import {
     debounceTime,
     delay,
+    distinctUntilChanged,
     filter,
     map,
     scan,
@@ -91,7 +92,7 @@ export class SelectAutoComplete
 
     /**
      * The BehaviorSubject starts as an empty array, but this initial empty array must be ignored and wait for
-     * the first non-empty array. After which, 
+     * the first non-empty array. After which,
      */
     readonly listOptions$ = this.__listOptions$.pipe(
         scan(
@@ -142,20 +143,24 @@ export class SelectAutoComplete
      *
      */
     writeValue(v: ItemOrId | null): void {
-        this._waitForInputValue(v).subscribe((t) => {
+        this._waitForInputValue(v).subscribe(({ asString, initValInvalid }) => {
+            const changedFromOriginalListItemValue =
+                isOfType<ListItem>(v, ['name']) &&
+                v.name !== asString &&
+                v.name !== '' &&
+                v.id !== -1;
+            const originalIsInvalidPrimitive =
+                ((typeof v === 'string' || typeof v === 'number') && initValInvalid) &&
+                    v !== -1;
+            // *********************
             // Typically using { emitEvent: false }, because the parent form is the source of writeValue. Therefore
             // emitting changes to the parent is redundant and falsely sets dirty to true.
             // There is one exception to that. If the value written to the control is a list item that is
             // not in the options, the control should emit the change from the invalid value to empty.
-            if (
-                isOfType<ListItem>(v, ['name']) &&
-                v.name !== t &&
-                v.name !== '' &&
-                v.id !== -1
-            ) {
-                this.inputControl.setValue(t);
+            if (changedFromOriginalListItemValue || originalIsInvalidPrimitive) {
+                this.inputControl.setValue(asString);
             } else {
-                this.inputControl.setValue(t, { emitEvent: false });
+                this.inputControl.setValue(asString, { emitEvent: false });
             }
         });
     }
@@ -170,12 +175,16 @@ export class SelectAutoComplete
          */
         this.inputControl.valueChanges
             .pipe(
+                distinctUntilChanged(),
                 switchMap((t) => this.findItemInList(t)),
-                map((id) =>
-                    hasControlNilValidator(this.inputControl) //.hasValidator(Validators.required)
-                        ? null
-                        : -1
-                )
+                map((id) => {
+                    if (isEmpty(id, [-1])) {
+                        return hasControlNilValidator(this.inputControl)
+                            ? null
+                            : -1;
+                    }
+                    return id;
+                })
             )
             .subscribe((t) => {
                 this.onChange(t);
@@ -215,7 +224,6 @@ export class SelectAutoComplete
                 (i) => i.name === this.inputControl.value
             )
         ) {
-            console.log(value);
             this.inputControl.setErrors({ invalidOption: 'invalid option' });
         }
         return this.inputControl.errors;
@@ -304,7 +312,10 @@ export class SelectAutoComplete
 
     private findItemInList(val: string | null) {
         return this.listOptions$.pipe(
-            map((l) => l.find((i) => i.name === val)?.id ?? null)
+            map((l) => {
+                const r = l.find((i) => i.name === val);
+                return r?.id ?? null;
+            })
         );
     }
 
@@ -328,7 +339,7 @@ export class SelectAutoComplete
      */
     private _waitForInputValue<T extends ItemOrId | string | null>(
         val: T
-    ): Observable<string | null> {
+    ): Observable<{ asString: string | null; initValInvalid: boolean }> {
         // combineLatest ensures listOptions$ has a value or waits to emit until it does
         return combineLatest([
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
@@ -343,14 +354,15 @@ export class SelectAutoComplete
              */
             delay(1),
             // Create a distinct list of listOptions that match the id from the value(s).
-            map(([v, o]): string | null => {
+            map(([v, o]) => {
                 if (isOfType<ListItem>(val, ['id', 'name'])) {
-                    const r =
-                        o.find((i) => i.id === val.id && i.name === val.name)
-                            ?.name ?? '';
-                    return r;
+                    const r = o.find(
+                        (i) => i.id === val.id && i.name === val.name
+                    )?.name;
+                    return { asString: r ?? '', initValInvalid: r === undefined };
                 }
-                return o.find((i) => i.id === v)?.name ?? '';
+                const r = o.find((i) => i.id === v)?.name;
+                return { asString: r ?? '', initValInvalid: r === undefined };
             })
         );
     }

@@ -252,9 +252,10 @@ describe('SelectAutoComplete', () => {
 
                     // Also just being sure next value change goes through.
                     const nextValue = listItems[2];
-                    console.log(nextValue);
 
-                    spectator.component.inputControl.setValue(nextValue.name ?? null);
+                    spectator.component.inputControl.setValue(
+                        nextValue.name ?? null
+                    );
 
                     tick(100);
                     spectator.detectChanges();
@@ -558,6 +559,15 @@ describe('SelectAutoComplete', () => {
                     expect(
                         spectator.hostComponent.control.untouched
                     ).toBeTrue();
+                    // console.log('testing', {
+                    //     validatorName,
+                    //     value: spectator.hostComponent.control.value,
+                    //     exp: expectedParentValue,
+                    //     status: spectator.hostComponent.control.status,
+                    //     expStatus: expectedParentValidatorStatus,
+                    //     dirty: spectator.hostComponent.control.dirty,
+                    //     expDirty: true
+                    // });
 
                     expect(spectator.hostComponent.control.dirty).toBeTrue();
 
@@ -650,7 +660,6 @@ describe('SelectAutoComplete', () => {
                         expectedInternalValue
                     );
 
-                    console.log(spectator.hostComponent.control.value);
                     expect(spectator.hostComponent.control.value).toEqual(
                         expectedParentValue
                     );
