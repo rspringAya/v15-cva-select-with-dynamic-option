@@ -484,6 +484,9 @@ describe('SelectAutoComplete', () => {
         }
     );
 
+
+    /** Invalid Initial Value (does not match any in list items) */ 
+
     invalidInitialValueAndValidatorTestScenarios.forEach(
         ({
             initialValue,
@@ -521,16 +524,23 @@ describe('SelectAutoComplete', () => {
                     );
                 });
 
-                it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
-                        (${strExpectedParentValue}).`, fakeAsync(() => {
+                it(`should initialize with (invalid) value (${strInternalValue}), and emit new empty value
+                    (${strExpectedParentValue}) to parent.`, fakeAsync(() => {
+                    
+                    // Arrange & Act
                     //Set parent list items
                     tick(1);
+                    spectator.detectChanges();
+
+                    // for debounce in filter initialization
+                    tick(100);
                     spectator.detectChanges();
 
                     // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
 
+                    // Assert
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
                     );
@@ -547,13 +557,14 @@ describe('SelectAutoComplete', () => {
                         validatorStatus
                     );
 
+                    // Remains untouched, because the value correction does not blur the control
                     expect(
                         spectator.hostComponent.control.untouched
                     ).toBeTrue();
 
                     expect(
-                        spectator.hostComponent.control.pristine
-                    ).toBeFalse();
+                        spectator.hostComponent.control.dirty
+                    ).toBeTrue();
 
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
@@ -561,20 +572,13 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.changesCount).toBe(1);
 
-                    spectator.component.inputControl.setValue(
-                        listItemsWithZeroPayloadForHostStore[2].name
-                    );
-
-                    tick(100);
-                    spectator.detectChanges();
-
-                    expect(spectator.hostComponent.changesCount).toBe(2);
                 }));
 
                 it('to be invalid', fakeAsync(() => {
                     tick(1);
                     spectator.detectChanges();
-                    // Second tick for the delay for register on changes to occur
+
+                    // Second tick for the delay in _waitForInputValue, for register on changes to occur first
                     tick(1);
                     spectator.detectChanges();
 
@@ -603,7 +607,7 @@ describe('SelectAutoComplete', () => {
 
     /*
      * Not duplicates
-     * These tests are for an initial value that is not in the list items that are set to the control
+     * These tests are for an initial value that is invalid (not in list items)
      */
     invalidInitialValueAndValidatorTestScenarios.forEach(
         ({
@@ -641,20 +645,22 @@ describe('SelectAutoComplete', () => {
                             : listItemsWithZeroPayloadForHostStore;
                 });
 
-                it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
-                        (${strExpectedParentValue}).`, fakeAsync(() => {
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                it(`should initialize with value (${strInternalValue}), but set to empty value when not 
+                    found in list items and emit to parent as (${strExpectedParentValue}).`, fakeAsync(() => {
 
                     //Set parent list items
                     emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
                         listItems
                     );
+
+                    // For list item emit
                     tick(1);
                     spectator.detectChanges();
 
-                    // For debounce in valueChanges
+                    // For debounce in filter initialization
+                    tick(100);
+                    
+                    // For debounce in valueChanges after correcting value
                     tick(100);
                     spectator.detectChanges();
 
@@ -679,54 +685,14 @@ describe('SelectAutoComplete', () => {
                     ).toBeTrue();
 
                     expect(
-                        spectator.hostComponent.control.pristine
-                    ).toBeFalse();
+                        spectator.hostComponent.control.dirty
+                    ).toBeTrue();
 
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
                     );
 
                     expect(spectator.hostComponent.changesCount).toBe(1);
-
-
-                    tick(100);
-                    spectator.detectChanges();
-                }));
-
-                it(`to be ${validatorStatus}`, fakeAsync(() => {
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
-
-                    //Set parent list items
-                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
-                        listItems
-                    );
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // Second tick for the delay for register on changes to occur
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
-                    expect(spectator.component.inputControl.value).toEqual(
-                        expectedInternalValue
-                    );
-
-                    expect(spectator.hostComponent.control.value).toEqual(
-                        expectedParentValue
-                    );
-
-                    expect(spectator.component.inputControl.errors).toEqual(
-                        errors
-                    );
-
-                    expect(spectator.component.inputControl.status).toEqual(
-                        validatorStatus
-                    );
                 }));
             });
         }
