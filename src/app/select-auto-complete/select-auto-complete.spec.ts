@@ -335,7 +335,7 @@ describe('SelectAutoComplete', () => {
                     tick(1);
                     spectator.detectChanges();
 
-                    // Tick past valueChanges debounceTime(100)
+                    // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
 
@@ -366,15 +366,87 @@ describe('SelectAutoComplete', () => {
                     );
 
                     expect(spectator.hostComponent.changesCount).toBe(0);
+                }));
 
+                it(`should initialize with value (${strInternalValue}), and emit changes to parent.`, fakeAsync(() => {
+                    // Arrange
+
+                    // For debounce in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // For debounceTime(100) in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    // Act
                     spectator.component.inputControl.setValue(
                         listItemsWithZeroPayloadForHostStore[2].name
                     );
 
+                    // For debounceTime(100) in valueChanges
                     tick(100);
                     spectator.detectChanges();
 
+                    // Assert
                     expect(spectator.hostComponent.changesCount).toBe(1);
+                    expect(spectator.hostComponent.control.dirty).toBeTrue();
+                    // Note this test will not cover touched state, because we are
+                    // not actually touching the control. Only changing the value.
+                }));
+
+                it(`should initialize with value (${strInternalValue}), and onBlur should mark parent as touched.`, fakeAsync(() => {
+                    // Arrange
+
+                    // For debounce in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    //Set parent list items
+                    emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        listItems
+                    );
+                    tick(1);
+                    spectator.detectChanges();
+
+                    // For debounceTime(100) in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    expect(spectator.component.inputControl.value).toEqual(
+                        expectedInternalValue
+                    );
+
+                    expect(spectator.hostComponent.control.value).toEqual(
+                        expectedParentValue
+                    );
+
+                    // Act
+                    spectator.component.onBlur();
+
+                    // onBlur triggers an updateValueAndValidity
+                    // For debounceTime(100) in valueChanges
+                    tick(100);
+                    spectator.detectChanges();
+
+                    // Assert
+                    expect(spectator.hostComponent.changesCount).toBe(1);
+                    expect(spectator.hostComponent.control.touched).toBeTrue();
                 }));
 
                 it(`to be ${validatorStatus}`, fakeAsync(() => {
@@ -389,7 +461,7 @@ describe('SelectAutoComplete', () => {
                     tick(1);
                     spectator.detectChanges();
 
-                    // Tick past valueChanges debounceTime(100)
+                    // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
                     expect(spectator.component.inputControl.value).toEqual(
@@ -529,6 +601,10 @@ describe('SelectAutoComplete', () => {
         }
     );
 
+    /*
+     * Not duplicates
+     * These tests are for an initial value that is not in the list items that are set to the control
+     */
     invalidInitialValueAndValidatorTestScenarios.forEach(
         ({
             initialValue,
@@ -578,7 +654,7 @@ describe('SelectAutoComplete', () => {
                     tick(1);
                     spectator.detectChanges();
 
-                    // Tick past valueChanges debounceTime(100)
+                    // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
 
@@ -612,14 +688,9 @@ describe('SelectAutoComplete', () => {
 
                     expect(spectator.hostComponent.changesCount).toBe(1);
 
-                    spectator.component.inputControl.setValue(
-                        listItemsWithZeroPayloadForHostStore[2].name
-                    );
 
                     tick(100);
                     spectator.detectChanges();
-
-                    expect(spectator.hostComponent.changesCount).toBe(2);
                 }));
 
                 it(`to be ${validatorStatus}`, fakeAsync(() => {
@@ -638,7 +709,7 @@ describe('SelectAutoComplete', () => {
                     tick(1);
                     spectator.detectChanges();
 
-                    // Tick past valueChanges debounceTime(100)
+                    // For debounce in valueChanges
                     tick(100);
                     spectator.detectChanges();
                     expect(spectator.component.inputControl.value).toEqual(

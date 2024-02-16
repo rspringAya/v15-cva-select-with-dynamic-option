@@ -242,6 +242,8 @@ export class SelectAutoComplete
             .subscribe(([_, options]) => {
                 if (
                     options?.length === 1 &&
+                     // TODO: This version of the control only ever sets the control
+                     // value to a string. Potentially get rid of this check.
                     !isListItem(this.inputControl.value)
                 ) {
                     this.inputControl.setValue(options[0].name ?? null);
