@@ -20,6 +20,7 @@ import {
 } from './test-scenarios';
 
 describe('SelectAutoComplete', () => {
+    //#region TestSetup
     /** The initial value used when defining the parent form */
     let parentFormInitialValue: any,
         /** The validator assigned to the parent form (this is where the parent form config
@@ -172,8 +173,7 @@ describe('SelectAutoComplete', () => {
         schemas: [NO_ERRORS_SCHEMA]
     });
 
-    // In a constant to make collapsable. Change this if you can get it to collapse another way.
-
+    //#endregion end TestSetup
     initialValueAndValidatorTestScenarios.forEach(
         ({
             initialValue,
@@ -192,6 +192,7 @@ describe('SelectAutoComplete', () => {
                 const strExpectedParentValue =
                     JSON.stringify(expectedParentValue);
                 beforeEach(() => {
+                    //Values for initial value and validator set BEFORE createComponent is called.
                     parentFormInitialValue = initialValue;
                     parentFormValidators = validator;
 
@@ -205,21 +206,19 @@ describe('SelectAutoComplete', () => {
                                             </aya-select-auto-complete>`);
 
                     emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        // Leaving for now, but not currently testing with minAsRequired(1)
                         validatorName === 'AyaValidators.minAsRequired(1)'
                             ? listItemsWithoutZeroPayloadForHostStore
                             : listItemsWithZeroPayloadForHostStore
                     );
                 });
 
-                it(`should initialize with value (${strInternalValue}), but not emit to parent should remain as 
+                it(`should initialize with value (${strInternalValue}), but not emit to parent and parent should remain as 
                         (${strExpectedParentValue}).`, fakeAsync(() => {
                     //Set parent list items
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndDetectChangesThroughComponentInitialization(
+                        spectator
+                    );
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -260,11 +259,9 @@ describe('SelectAutoComplete', () => {
                 }));
 
                 it('to be invalid', fakeAsync(() => {
-                    tick(1);
-                    spectator.detectChanges();
-
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndDetectChangesThroughComponentInitialization(
+                        spectator
+                    );
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -316,6 +313,8 @@ describe('SelectAutoComplete', () => {
                                                 label="Test Autocomplete"
                                             >
                                             </aya-select-auto-complete>`);
+
+                    // Leaving for now, but not currently testing with minAsRequired(1)
                     listItems =
                         validatorName === 'AyaValidators.minAsRequired(1)'
                             ? listItemsWithoutZeroPayloadForHostStore
@@ -484,8 +483,7 @@ describe('SelectAutoComplete', () => {
         }
     );
 
-
-    /** Invalid Initial Value (does not match any in list items) */ 
+    /** Invalid Initial Value (does not match any in list items) */
 
     invalidInitialValueAndValidatorTestScenarios.forEach(
         ({
@@ -518,6 +516,7 @@ describe('SelectAutoComplete', () => {
                                             </aya-select-auto-complete>`);
 
                     emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                        // Leaving for now, but not currently testing with minAsRequired(1)
                         validatorName === 'AyaValidators.minAsRequired(1)'
                             ? listItemsWithoutZeroPayloadForHostStore
                             : listItemsWithZeroPayloadForHostStore
@@ -526,19 +525,10 @@ describe('SelectAutoComplete', () => {
 
                 it(`should initialize with (invalid) value (${strInternalValue}), and emit new empty value
                     (${strExpectedParentValue}) to parent.`, fakeAsync(() => {
-                    
                     // Arrange & Act
-                    //Set parent list items
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // for debounce in filter initialization
-                    tick(100);
-                    spectator.detectChanges();
-
-                    // For debounce in valueChanges
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndDetectChangesThroughComponentInitialization(
+                        spectator
+                    );
 
                     // Assert
                     expect(spectator.component.inputControl.value).toEqual(
@@ -562,28 +552,19 @@ describe('SelectAutoComplete', () => {
                         spectator.hostComponent.control.untouched
                     ).toBeTrue();
 
-                    expect(
-                        spectator.hostComponent.control.dirty
-                    ).toBeTrue();
+                    expect(spectator.hostComponent.control.dirty).toBeTrue();
 
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
                     );
 
                     expect(spectator.hostComponent.changesCount).toBe(1);
-
                 }));
 
                 it('to be invalid', fakeAsync(() => {
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // Second tick for the delay in _waitForInputValue, for register on changes to occur first
-                    tick(1);
-                    spectator.detectChanges();
-
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndDetectChangesThroughComponentInitialization(
+                        spectator
+                    );
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
@@ -639,35 +620,30 @@ describe('SelectAutoComplete', () => {
                                                 label="Test Autocomplete"
                                             >
                                             </aya-select-auto-complete>`);
+                    // Leaving for now, but not currently testing with minAsRequired(1)
                     listItems =
                         validatorName === 'AyaValidators.minAsRequired(1)'
-                            ? listItemsWithoutZeroPayloadForHostStore
+                            ? // Leaving for now, but not currently testing with minAsRequired(1)
+                              listItemsWithoutZeroPayloadForHostStore
                             : listItemsWithZeroPayloadForHostStore;
                 });
 
                 it(`should initialize with value (${strInternalValue}), but set to empty value when not 
                     found in list items and emit to parent as (${strExpectedParentValue}).`, fakeAsync(() => {
-
                     //Set parent list items
                     emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
                         listItems
                     );
 
-                    // For list item emit
-                    tick(1);
-                    spectator.detectChanges();
-
-                    // For debounce in filter initialization
-                    tick(100);
-                    
-                    // For debounce in valueChanges after correcting value
-                    tick(100);
-                    spectator.detectChanges();
+                    tickAndDetectChangesThroughComponentInitialization(
+                        spectator
+                    );
 
                     expect(spectator.component.inputControl.value).toEqual(
                         expectedInternalValue
                     );
 
+                    console.log(spectator.hostComponent.control.value);
                     expect(spectator.hostComponent.control.value).toEqual(
                         expectedParentValue
                     );
@@ -684,9 +660,7 @@ describe('SelectAutoComplete', () => {
                         spectator.hostComponent.control.untouched
                     ).toBeTrue();
 
-                    expect(
-                        spectator.hostComponent.control.dirty
-                    ).toBeTrue();
+                    expect(spectator.hostComponent.control.dirty).toBeTrue();
 
                     expect(spectator.hostComponent.control.status).toEqual(
                         expectedParentValidatorStatus
@@ -697,4 +671,20 @@ describe('SelectAutoComplete', () => {
             });
         }
     );
+
+    const tickAndDetectChangesThroughComponentInitialization = (
+        spectator: SpectatorHost<SelectAutoComplete, TestHostComponent>
+    ) => {
+        //Set parent list items
+        tick(1);
+        spectator.detectChanges();
+
+        // for debounce in filter initialization
+        tick(100);
+        spectator.detectChanges();
+
+        // For debounce in valueChanges
+        tick(100);
+        spectator.detectChanges();
+    };
 });

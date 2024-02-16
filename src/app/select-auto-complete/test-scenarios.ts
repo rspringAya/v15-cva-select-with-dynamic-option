@@ -31,7 +31,20 @@ export const invalidInitialValueAndValidatorTestScenarios: CvaTestScenarios[] = 
         // In this case, the parent should get the change to the empty value.
         expectedParentValue: -1,
         expectedParentValidatorStatus: 'INVALID'
-    }
+    },
+    // Revisit this test case. Is this needed?
+    // {
+    //     initialValue: 0,
+    //     validatorName: 'AyaValidators.minAsRequired(1)',
+    //     validator: AyaValidators.minAsRequired(1),
+    //     validatorStatus: 'INVALID',
+    //     errors: {
+    //         required: true
+    //     },
+    //     expectedInternalValue: '',
+    //     expectedParentValue: 0,
+    //     expectedParentValidatorStatus: 'INVALID'
+    // }
 ];
 
 export const initialValueAndValidatorTestScenarios: CvaTestScenarios[] = [
@@ -54,8 +67,8 @@ export const initialValueAndValidatorTestScenarios: CvaTestScenarios[] = [
             required: true
         },
         expectedInternalValue: '',
-        expectedParentValidatorStatus: 'INVALID',
-        expectedParentValue: null
+        expectedParentValue: null,
+        expectedParentValidatorStatus: 'INVALID'
     },
     {
         initialValue: 0,
