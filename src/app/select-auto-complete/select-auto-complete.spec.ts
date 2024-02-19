@@ -21,6 +21,7 @@ import {
 } from '@ngneat/spectator';
 import { Observable, ReplaySubject } from 'rxjs';
 import { ListItem } from '../list-item.models';
+import { AyaValidators } from '../validators';
 import { SelectAutoComplete } from './select-auto-complete';
 import {
     initialValueAndValidatorTestScenarios,
@@ -183,6 +184,66 @@ describe('SelectAutoComplete', () => {
         schemas: [NO_ERRORS_SCHEMA]
     });
 
+    describe(`basics`, () => {
+        let listItems: ListItem[];
+        beforeEach(() => {
+            //Values for initial value and validator set BEFORE createComponent is called.
+            parentFormInitialValue = 1;
+            parentFormValidators = AyaValidators.minAsRequired(0);
+
+            spectator = createComponent(`<aya-select-auto-complete
+                            
+                            [listItems]="listItems$ | async"
+                            [isLoading]="isLoading"
+                            [formControl]="control"
+                            label="Test Autocomplete"
+                        >
+                        </aya-select-auto-complete>`);
+                        
+            listItems = listItemsWithZeroPayloadForHostStore;
+
+            emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
+                listItems
+            );
+        });
+
+        it(`should disable CVA control when parent is disabled.`, fakeAsync(() => {
+            tickAndDetectChangesThroughComponentInitialization(spectator);
+            spectator.hostComponent.control.disable();
+            tick(200)
+            spectator.detectChanges();
+
+            expect(spectator.component.inputControl.disabled).toBeTrue();
+        }));
+
+        it('should throw invalid option error when value is left as not an exact match', fakeAsync(() => {
+            tickAndDetectChangesThroughComponentInitialization(spectator);
+
+            spectator.component.inputControl.setValue('test');
+            spectator.component.onBlur();
+            tick(200)
+            spectator.detectChanges();
+
+            expect(spectator.component.inputControl.value).toEqual('test');
+            expect(spectator.hostComponent.control.errors).toHaveProperty('invalidOption');
+        }));
+
+        it('should set value when only 1 match is remaining', fakeAsync(() => {
+            tickAndDetectChangesThroughComponentInitialization(spectator);
+
+            spectator.component.inputControl.setValue('foo');
+            tick(200)
+            spectator.detectChanges();
+            spectator.component.onBlur();
+            tick(200)
+            spectator.detectChanges();
+
+            expect(spectator.component.inputControl.value).toEqual('foo');
+            expect(spectator.hostComponent.control.errors).not.toHaveProperty('invalidOption');
+            expect(spectator.hostComponent.control.value).not.toEqual(5);
+        }));
+    });
+
     //#endregion end TestSetup
     initialValueAndValidatorTestScenarios.forEach(
         ({
@@ -261,12 +322,12 @@ describe('SelectAutoComplete', () => {
                     expect(spectator.hostComponent.changesCount).toBe(0);
 
                     spectator.component.openPanel(matAutocompleteTriggerSpy);
-                    expect(matAutocompleteTriggerSpy.openPanel).toHaveBeenCalled();
+                    expect(
+                        matAutocompleteTriggerSpy.openPanel
+                    ).toHaveBeenCalled();
 
                     spectator.component.panelOpened(matAutocompleteSpy);
                     // expect(spectator.component)
-                    
-
 
                     // Also just being sure next value change goes through.
                     const nextValue = listItems[2];

@@ -307,7 +307,7 @@ export class SelectAutoComplete
     private _setValueIfInListItemOrClear(list: ListItem[]) {
         const { value } = this.inputControl;
         const foundValue = list.find(
-            (e) => e.id === this._selectedItemToId(value)
+            (e) => e.id === Number(value)
         );
 
         if (value) {
@@ -318,10 +318,6 @@ export class SelectAutoComplete
         } else {
             this._clearValue();
         }
-    }
-
-    private _selectedItemToId(item: SelectedItem | number) {
-        return isListItem(item) ? item?.id : Number(item);
     }
 
     private _clearValue() {
@@ -338,14 +334,14 @@ export class SelectAutoComplete
     }
 
     private _filterOptions(
-        val: SelectedItem,
+        val: string | null,
         listItems: ListItem[]
     ): ListItem[] {
         // When val is empty, return all listItems. Otherwise filter by beginsWith.
         return isEmpty(val, ['-1', -1])
             ? listItems
             : listItems.filter((p) =>
-                  beginsWith(p.name, isListItem(val) ? val.name : val)
+                  beginsWith(p.name, val)
               );
     }
 
