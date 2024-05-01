@@ -14,7 +14,6 @@ import { SelectAutoComplete } from './select-auto-complete/select-auto-complete'
 
 @NgModule({
     declarations: [
-        SelectAutoComplete,
         MultiSelectAutoComplete,
         AppComponent,
         SelectAutoCompleteExamplesComponent

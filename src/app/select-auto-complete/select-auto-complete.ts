@@ -1,18 +1,26 @@
-import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import { Component, Input, forwardRef } from '@angular/core';
 import {
     AbstractControl,
     ControlValueAccessor,
     FormBuilder,
     FormControl,
+    FormsModule,
     NG_VALIDATORS,
     NG_VALUE_ACCESSOR,
+    ReactiveFormsModule,
     ValidationErrors,
     Validator
 } from '@angular/forms';
 import {
-    MatAutocomplete,
+    MatAutocompleteModule,
     MatAutocompleteTrigger
 } from '@angular/material/autocomplete';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import {
     BehaviorSubject,
     Observable,
@@ -34,14 +42,9 @@ import {
     throttleTime,
     withLatestFrom
 } from 'rxjs/operators';
+import { MaterialModule } from 'src/material.module';
 import { hasControlNilValidator, inheritMinAsRequired } from '../forms';
-import {
-    ItemOrId,
-    ListItem,
-    SelectedItem,
-    isListItem,
-    resolveToNumberOrId
-} from '../list-item.models';
+import { ItemOrId, ListItem, resolveToNumberOrId } from '../list-item.models';
 import { beginsWith, isEmpty, isOfType } from '../obj-utilities';
 import { UnsubscribeOnDestroy } from '../unsubscribe-ondestroy';
 
@@ -54,16 +57,26 @@ Investigate later.
 @Component({
     selector: 'aya-select-auto-complete',
     templateUrl: 'select-auto-complete.html',
+    standalone: true,
+    imports: [
+        BrowserAnimationsModule,
+        BrowserModule,
+        FormsModule,
+        MaterialModule,
+        HttpClientModule,
+        ReactiveFormsModule,
+        CommonModule
+    ],
     styleUrls: ['select-auto-complete.css'],
     providers: [
         {
             provide: NG_VALIDATORS,
-            useExisting: SelectAutoComplete,
+            useExisting: forwardRef(() => SelectAutoComplete),
             multi: true
         },
         {
             provide: NG_VALUE_ACCESSOR,
-            useExisting: SelectAutoComplete,
+            useExisting: forwardRef(() => SelectAutoComplete),
             multi: true
         }
     ],
@@ -124,7 +137,7 @@ export class SelectAutoComplete
 
     filteredOptions$: Observable<ListItem[]> | undefined;
 
-    panelOpened(auto: MatAutocomplete) {
+    panelOpened() {
         this.panelOpened$.next('');
     }
 
@@ -211,6 +224,7 @@ export class SelectAutoComplete
     }
 
     setDisabledState?(isDisabled: boolean): void {
+        console.log('calling disabled');
         if (isDisabled) {
             this.inputControl.disable();
         } else {
@@ -306,9 +320,7 @@ export class SelectAutoComplete
      */
     private _setValueIfInListItemOrClear(list: ListItem[]) {
         const { value } = this.inputControl;
-        const foundValue = list.find(
-            (e) => e.id === Number(value)
-        );
+        const foundValue = list.find((e) => e.id === Number(value));
 
         if (value) {
             // Only set it if it's a new value
@@ -340,9 +352,7 @@ export class SelectAutoComplete
         // When val is empty, return all listItems. Otherwise filter by beginsWith.
         return isEmpty(val, ['-1', -1])
             ? listItems
-            : listItems.filter((p) =>
-                  beginsWith(p.name, val)
-              );
+            : listItems.filter((p) => beginsWith(p.name, val));
     }
 
     /**

@@ -117,7 +117,6 @@ describe('SelectAutoComplete', () => {
 
     let spectator: SpectatorHost<SelectAutoComplete, TestHostComponent>;
     const matAutocompleteTriggerSpy = createSpyObject(MatAutocompleteTrigger);
-    const matAutocompleteSpy = createSpyObject(MatAutocomplete);
 
     /**
      * Be sure to call `tick(100)` to flush out the `debounceTime(100)` in valueChanges
@@ -172,7 +171,7 @@ describe('SelectAutoComplete', () => {
     const createComponent = createHostFactory({
         component: SelectAutoComplete,
         host: TestHostComponent,
-        declarations: [SelectAutoComplete, TestHostComponent],
+        declarations: [TestHostComponent],
         providers: [{ provide: ControlContainer, useClass: TestHostComponent }],
         imports: [
             NoopAnimationsModule,
@@ -199,7 +198,7 @@ describe('SelectAutoComplete', () => {
                             label="Test Autocomplete"
                         >
                         </aya-select-auto-complete>`);
-                        
+
             listItems = listItemsWithZeroPayloadForHostStore;
 
             emitNewListItemsFromParent_CallTickAndDetectChangesAfterMe(
@@ -210,8 +209,9 @@ describe('SelectAutoComplete', () => {
         it(`should disable CVA control when parent is disabled.`, fakeAsync(() => {
             tickAndDetectChangesThroughComponentInitialization(spectator);
             spectator.hostComponent.control.disable();
-            tick(200)
+            tick(200);
             spectator.detectChanges();
+            console.log('disabled', spectator.component.inputControl.disabled);
 
             expect(spectator.component.inputControl.disabled).toBeTrue();
         }));
@@ -221,25 +221,29 @@ describe('SelectAutoComplete', () => {
 
             spectator.component.inputControl.setValue('test');
             spectator.component.onBlur();
-            tick(200)
+            tick(200);
             spectator.detectChanges();
 
             expect(spectator.component.inputControl.value).toEqual('test');
-            expect(spectator.hostComponent.control.errors).toHaveProperty('invalidOption');
+            expect(spectator.hostComponent.control.errors).toHaveProperty(
+                'invalidOption'
+            );
         }));
 
         it('should set value when only 1 match is remaining', fakeAsync(() => {
             tickAndDetectChangesThroughComponentInitialization(spectator);
 
             spectator.component.inputControl.setValue('foo');
-            tick(200)
+            tick(200);
             spectator.detectChanges();
             spectator.component.onBlur();
-            tick(200)
+            tick(200);
             spectator.detectChanges();
 
             expect(spectator.component.inputControl.value).toEqual('foo');
-            expect(spectator.hostComponent.control.errors).not.toHaveProperty('invalidOption');
+            expect(spectator.hostComponent.control.errors).not.toHaveProperty(
+                'invalidOption'
+            );
             expect(spectator.hostComponent.control.value).not.toEqual(5);
         }));
     });
@@ -326,7 +330,7 @@ describe('SelectAutoComplete', () => {
                         matAutocompleteTriggerSpy.openPanel
                     ).toHaveBeenCalled();
 
-                    spectator.component.panelOpened(matAutocompleteSpy);
+                    spectator.component.panelOpened();
                     // expect(spectator.component)
 
                     // Also just being sure next value change goes through.
