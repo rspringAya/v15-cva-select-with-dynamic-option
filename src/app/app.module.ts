@@ -26,7 +26,8 @@ import { SelectAutoComplete } from './select-auto-complete/select-auto-complete'
         HttpClientModule,
         ReactiveFormsModule,
         CommonModule,
-        DisableUntilReadyModule
+        DisableUntilReadyModule,
+        SelectAutoComplete
     ],
     bootstrap: [AppComponent]
 })

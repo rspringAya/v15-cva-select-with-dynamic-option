@@ -177,10 +177,10 @@ describe('SelectAutoComplete', () => {
             NoopAnimationsModule,
             FormsModule,
             ReactiveFormsModule,
-            MatAutocompleteModule
+            MatAutocompleteModule,
+            SelectAutoComplete
         ],
-        detectChanges: false,
-        schemas: [NO_ERRORS_SCHEMA]
+        detectChanges: false
     });
 
     describe(`basics`, () => {

@@ -14,11 +14,9 @@ import {
     Validator
 } from '@angular/forms';
 import {
-    MatAutocompleteModule,
     MatAutocompleteTrigger
 } from '@angular/material/autocomplete';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import {
@@ -29,6 +27,7 @@ import {
     merge,
     of
 } from 'rxjs';
+
 import {
     debounceTime,
     delay,
@@ -37,7 +36,6 @@ import {
     map,
     scan,
     switchMap,
-    takeUntil,
     tap,
     throttleTime,
     withLatestFrom
@@ -49,11 +47,7 @@ import { beginsWith, isEmpty, isOfType } from '../obj-utilities';
 import { UnsubscribeOnDestroy } from '../unsubscribe-ondestroy';
 
 /** @title Select with custom trigger text */
-/* 
-Adding `@UntilDestroy()` causes the following error:
-NG0204: Token InjectionToken NgValidators is missing a ɵprov definition.
-Investigate later.
-*/
+@UntilDestroy()
 @Component({
     selector: 'aya-select-auto-complete',
     templateUrl: 'select-auto-complete.html',
@@ -83,16 +77,16 @@ Investigate later.
     host: { focus: 'focus()' }
 })
 export class SelectAutoComplete
-    extends UnsubscribeOnDestroy
     implements Validator, ControlValueAccessor
 {
     @Input() placeholder = '';
-
+    @Input() label?: string;
+    @Input() matHint?: string;
+    @Input() hideRequiredMarker = false;
     readonly inputControl: FormControl<string | null>;
 
     private readonly panelOpened$ = new Subject<string>();
     constructor(private readonly _fb: FormBuilder) {
-        super();
         this.inputControl = this._fb.control<string | null>('');
         this._initializeFilteredList();
     }
@@ -223,8 +217,8 @@ export class SelectAutoComplete
         }
     }
 
-    setDisabledState?(isDisabled: boolean): void {
-        console.log('calling disabled');
+    setDisabledState(isDisabled: boolean): void {
+        console.log(isDisabled);
         if (isDisabled) {
             this.inputControl.disable();
         } else {
@@ -268,24 +262,14 @@ export class SelectAutoComplete
             this.listOptions$
         ]).pipe(
             map(([val, listItems]) => this._filterOptions(val, listItems)),
-            takeUntil(this.d$)
-            /** As mentioned above, Adding `@UntilDestroy()` causes the following error:
-             * NG0204: Token InjectionToken NgValidators is missing a ɵprov definition.
-             * Investigate later.
-             */
-            //untilDestroyed(this)
+            untilDestroyed(this)
         );
 
         this._setPotentialExactMatch$
             .asObservable()
             .pipe(
                 withLatestFrom(this.filteredOptions$),
-                takeUntil(this.d$)
-                /** As mentioned above, Adding `@UntilDestroy()` causes the following error:
-                 * NG0204: Token InjectionToken NgValidators is missing a ɵprov definition.
-                 * Investigate later.
-                 */
-                //untilDestroyed(this)
+                untilDestroyed(this)
             )
             .subscribe(([_, options]) => {
                 if (options?.length === 1) {
@@ -365,6 +349,7 @@ export class SelectAutoComplete
         val: T
     ): Observable<{ asString: string | null; initValInvalid: boolean }> {
         // combineLatest ensures listOptions$ has a value or waits to emit until it does
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
         return combineLatest([
             of(val).pipe(map((v) => resolveToNumberOrId(v))),
             this.listOptions$
