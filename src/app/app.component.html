@@ -1,14 +1,1 @@
-<div class="wrapper">
-<div>
-    <select-custom-multiselect *ngIf="(options | async) as opts"
-    [formControl]="toppings"
-    [toppingsOptions]="opts"
-    ></select-custom-multiselect>
-</div>
-<div>    
-    <h3>Toppings selected as seen by parent form</h3>
-    {{ toppings.value | json }}
-</div>
-</div>
-
-<footer style="position: fixed; bottom: 1rem">v0.1</footer>
+<tutor-select-auto-complete-examples></tutor-select-auto-complete-examples>

@@ -1,0 +1,16 @@
+<mat-form-field appearance="fill">
+  <mat-label>Toppings</mat-label>
+  <mat-select [formControl]="inputControl" multiple>
+    <mat-select-trigger>
+      {{inputControl.value[0].name || ''}}
+      <span *ngIf="(inputControl.value?.length || 0) > 1" class="example-additional-selection">
+        (+{{(inputControl.value.length || 0) - 1}} {{inputControl.value.length === 2 ? 'other' : 'others'}})
+      </span>
+    </mat-select-trigger>
+    <mat-option *ngFor="let topping of toppingsOptions$ | async"  [value]="topping">{{topping.name}}</mat-option>
+  </mat-select>
+</mat-form-field>
+<div>    
+  <h3>custom control value</h3>
+  {{ inputControl.value | json }}
+</div>

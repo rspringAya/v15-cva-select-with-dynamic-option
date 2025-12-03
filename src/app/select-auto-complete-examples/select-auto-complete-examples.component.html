@@ -1,0 +1,90 @@
+<h1>Examples</h1>
+<div class="flex-row">
+    <div>
+        <h2>With list items immediately available</h2>
+        <form
+            *ngFor="let scenario of scenariosWithControls"
+            class="mr-1"
+            class="flex-column"
+        >
+            <h3>
+                initial value set to ({{
+                    scenario.s.initialValue | json
+                }}), and validator '{{ scenario.s.validatorName }}'
+            </h3>
+            <div class="flex-row">
+                <aya-select-auto-complete
+                    class="mr-1"
+                    [listItems]="(scenario.listItems$ | async) ?? []"
+                    [formControl]="scenario.c"
+                    label="Test Autocomplete"
+                >
+                </aya-select-auto-complete>
+
+                <button
+                    [locumsDisableUntilReady]="scenario.c"
+                    class="mr-1"
+                    type="submit"
+                    mat-raised-button
+                    color="primary"
+                >
+                    Submit
+                </button>
+
+                <pre
+                    >{{ scenario.s | json }}
+Parent control value: {{ scenario.c.value | json }}
+Parent control pristine: <strong [ngClass]="scenario.c.pristine === false ? 'warn': 'pass'">{{ scenario.c.pristine | json }}</strong>
+Parent control untouched: <strong [ngClass]="scenario.c.untouched === false? 'warn': 'pass'">{{ scenario.c.untouched | json }}</strong>
+Parent control status: <strong [ngClass]="scenario.c.status === 'INVALID' ? 'warn': 'pass'">{{ scenario.c.status | json }}</strong>
+Parent control errors: {{ scenario.c.errors | json }}
+listOptions: {{ scenario.listItems$ | async | json }}
+    </pre
+                >
+            </div>
+        </form>
+    </div>
+    <div>
+        <h2>With list items delayed by 2 seconds</h2>
+        <form
+            *ngFor="let scenario of scenariosWithControlsAndDelayedListItems"
+            class="flex-column"
+        >
+            <h3>
+                initial value set to ({{
+                    scenario.s.initialValue | json
+                }}), and validator '{{ scenario.s.validatorName }}'
+            </h3>
+            <div class="flex-row">
+                <aya-select-auto-complete
+                    class="mr-1"
+                    [listItems]="(scenario.listItems$ | async) ?? []"
+                    [formControl]="scenario.c"
+                    label="Test Autocomplete"
+                >
+                </aya-select-auto-complete>
+
+                <button
+                    [locumsDisableUntilReady]="scenario.c"
+                    class="mr-1"
+                    type="submit"
+                    mat-raised-button
+                    color="primary"
+                >
+                    Submit
+                </button>
+
+                <pre
+                    >{{ scenario.s | json }}
+Parent control value: {{ scenario.c.value | json }}
+Parent control pristine: <strong [ngClass]="scenario.c.pristine === false ? 'fail': 'pass'">{{ scenario.c.pristine | json }}</strong>
+Parent control untouched: <strong [ngClass]="scenario.c.untouched === false? 'fail': 'pass'">{{ scenario.c.untouched | json }}</strong>
+Parent control status: {{ scenario.c.status | json }}
+Parent control errors: {{ scenario.c.errors | json }}
+listOptions: {{ scenario.listItems$ | async | json }}
+    </pre
+                >
+            </div>
+        </form>
+    </div>
+</div>
